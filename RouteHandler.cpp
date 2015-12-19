@@ -1,5 +1,5 @@
 #include "RouteHandler.h"
-
+#include "utils.h"
 
 using namespace std;
 
@@ -17,7 +17,7 @@ void RouteHandler::findConnectingRoute(MatchTracker &matchTracker)
 	{
 		stack.clear();
 		route.clear();
-		if (i == pivotIndex) continue;
+		if (i == matchTracker.pivotIndex) continue;
 		route.push_back(i);
 		index = 1;
 		int maxMatch = 0;
@@ -43,7 +43,7 @@ void RouteHandler::findConnectingRoute(MatchTracker &matchTracker)
 			route.push_back(next);
 			stack.pop_back();
 
-			if (next == pivotIndex)
+			if (next == matchTracker.pivotIndex)
 			{
 				matchTracker.assignRoute(i, route);
 				if (stack.size() == 0)
@@ -109,7 +109,7 @@ void RouteHandler::removeRedundantRoutes(MatchTracker &matchTracker)
 	int imageCount = matchTracker.getSize();
 	for (int i = 0; i < imageCount; i++)
 	{
-		if (i == pivotIndex) continue;
+		if (i == matchTracker.pivotIndex) continue;
 		int maxAvgWeight = 0, maxAvgIndex = -1;
 		Route &currentRoutes = matchTracker.getRoute(i);
 		int routeCount = currentRoutes.route.size();
@@ -144,7 +144,7 @@ void RouteHandler::countRoutesWeight(MatchTracker &matchTracker)
 	int imageCount = matchTracker.getSize();
 	for (int i = 0; i < imageCount; i++)
 	{
-		if (i == pivotIndex) continue;
+		if (i == matchTracker.pivotIndex) continue;
 		Route &currentRoutes = matchTracker.getRoute(i);
 		int routeCount = currentRoutes.route.size();
 		for (int r = 0; r < routeCount; r++)
@@ -169,7 +169,7 @@ void RouteHandler::printRoutes(MatchTracker &matchTracker)
 	int imageCount = matchTracker.getSize();
 	for (int i = 0; i < imageCount; i++)
 	{
-		if (i == pivotIndex) continue;
+		if (i == matchTracker.pivotIndex) continue;
 		Route &currentRoutes = matchTracker.getRoute(i);
 		int routeCount = currentRoutes.route.size();
 		if (routeCount == 0) printf("%d has no route\n", i);
@@ -191,4 +191,79 @@ void RouteHandler::printRoutes(MatchTracker &matchTracker)
 		}
 	}
 
+}
+
+
+void RouteHandler::calculateHomography(MatchTracker &matchTracker)
+{
+	
+	const int pivotIndex = 0;
+	vector<int> routeIndex, routeSize;
+	//sort
+	for (int i = 0; i < matchTracker.getSize(); i++)
+	{
+		if (i == pivotIndex) continue;
+		routeIndex.push_back(i);
+		routeSize.push_back(matchTracker.getRoute(i).route[0].size());
+	}
+	for (int i = 0; i < routeSize.size() - 1; i++)
+	{
+		for (int j = i + 1; j < routeSize.size(); j++)
+		{
+			if (routeSize[j] < routeSize[i])
+			{
+				int temp = routeIndex[i];
+				routeIndex[i] = routeIndex[j];
+				routeIndex[j] = temp;
+				temp = routeSize[i];
+				routeSize[i] = routeSize[j];
+				routeSize[j] = temp;
+			}
+		}
+	}
+
+	for (int i = 0; i < routeIndex.size(); i++)
+		printf("%d ", routeIndex[i]);
+	printf("\n");
+
+	Mat H = Mat::eye(3, 3, CV_64F);
+
+	matchTracker.assignHomographyPair(pivotIndex, pivotIndex, H);
+
+	int startpt;
+	for (int i = 0; i < routeIndex.size(); i++)
+	{
+		printf("For %d:\n", i);
+		printf("routeSize: %d\n", routeSize[i]);
+		H = Mat::eye(3, 3, CV_64F);
+		vector<int> &route = matchTracker.getRoute(routeIndex[i]).route[0];
+		startpt = route[0];
+		for (int j = 0; j < routeSize[i] - 1; j++)
+		{
+
+			printf("find pair (%d, %d)\n", route[j], route[j + 1]);
+			if (!(matchTracker.getHomographyPair(route[j], route[j + 1])).isEmpty())
+			{
+				printf("%d %d have pair\n", route[j], route[j + 1]);
+				H = H * (matchTracker.getHomographyPair(route[j], route[j + 1]).toMat());
+				printf("assigned Address: %u\n", &H);
+				matchTracker.assignHomographyPair(startpt, route[j + 1], H);
+			}
+			else
+			{
+				printf("%d %d do not have pair\n", route[j], route[j + 1]);
+				Mat tempH = findhomography(matchTracker.getPairFP(route[j], route[j + 1]));
+				printf("assigned Address: %u\n", &H);
+				matchTracker.assignHomographyPair(route[j], route[j + 1], tempH);
+				H = H*tempH;
+				
+				if (route[j] != startpt)
+				{
+					printf("assigned Address: %u\n", &tempH);
+					matchTracker.assignHomographyPair(startpt, route[j + 1], H);
+				}
+			}
+		}
+		printf("\n");
+	}
 }

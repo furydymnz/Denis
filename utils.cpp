@@ -351,7 +351,7 @@ Mat findhomography(IpPairVec& matches)
 		delete []value;
 	}
 
-	cout << "number of inliers:" << maxInlier << endl;
+	//cout << "number of inliers:" << maxInlier << endl;
 	/*
 	for(int i = 0;i < pointAmount;i++){
 		//cout << "x1: " <<  matches[i].first.x << " y2: " << matches[i].first.y << endl;
@@ -360,7 +360,7 @@ Mat findhomography(IpPairVec& matches)
 		cout << "x2: " <<  matches[point[i]].second.x << " y2: " << matches[point[i]].second.y << endl;
 	}*/
 
-	cout << "---------------------------------" << endl;
+	//cout << "---------------------------------" << endl;
 	return H;
 }
 

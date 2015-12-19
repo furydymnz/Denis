@@ -10,8 +10,7 @@ public:
 	static void removeRedundantRoutes(MatchTracker &matchTracker);
 	static void findConnectingRoute(MatchTracker &matchTracker);
 	static void countRoutesWeight(MatchTracker &matchTracker);
-	static const int pivotIndex = 0;
-
+	static void calculateHomography(MatchTracker &matchTracker);
 };
 
 

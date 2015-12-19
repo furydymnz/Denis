@@ -58,12 +58,17 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 			printf("%s can not be loaded!\n", imageStr[i]);
 	}
 	imageCount = vImage.size();
-	if (imageCount == 0) return -1;
+	if (imageCount <= 1) return -1;
 
 	MatchTracker matchTracker(imageCount);
 	for (int i = 0; i < vImage.size(); i++)
-		matchTracker.push_back(new BaseImage(vImage[i]));
-
+	{
+		matchTracker.pushImage(new BaseImage(vImage[i]));
+		char a[100];
+		sprintf(a, "/test/aaa%d.jpg", i);
+		printf("%s\n", a);
+		imwrite("ssss.jpg", (matchTracker.getImage(i)->image));
+	}
 	//Find surf descriptions
 	IpVec tempIpVec;
 	vector <IpVec > vIpVec;
@@ -88,7 +93,6 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 			matchTracker.assignFPPair(i, r, tempMatch);
 			printf("getMatches %d %d\n", i, r);
 		}
-
 	}
 
 	printf("\n");
@@ -103,79 +107,29 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	}
 	printf("\n");
 
-
 	RouteHandler::findConnectingRoute(matchTracker);
-
-	//sort
-	const int pivotIndex = 0;
-	vector<int> routeIndex, routeSize;
-	for(int i = 0;i < matchTracker.getSize();i++)
+	RouteHandler::calculateHomography(matchTracker);
+	for (int r = 0; r < 3; r++)
 	{
-		if(i == pivotIndex) continue;
-		routeIndex.push_back(i);
-		routeSize.push_back(matchTracker.getRoute(i).route[0].size());
+		for (int p = 0; p < 3; p++)
+			printf("%20.8lf", (matchTracker.getHomographyPair(0, 0)).at(r, p));
+		printf("\n");
 	}
-	for(int i = 0;i < routeSize.size() - 1;i++)
+	for (int i = 0; i < imageCount; i++)
 	{
-		for(int j = i + 1;j < routeSize.size();j++)
+		for (int j = 0; j < imageCount; j++)
 		{
-			if(routeSize[j] < routeSize[i])
-			{
-				int temp = routeIndex[i];
-				routeIndex[i] = routeIndex[j];
-				routeIndex[j] = temp;
-				temp = routeSize[i];
-				routeSize[i] = routeSize[j];
-				routeSize[j] = temp;
-			}
-		}	
-	}
-	
-	for(int i = 0;i < routeIndex.size();i++)
-		printf("%d ",routeIndex[i]);
-	printf("\n");
-
-	Mat H = Mat::eye(3,3,CV_64F);
-	int startpt;
-	for(int i = 0;i < routeIndex.size();i++)
-	{
-		H = Mat::eye(3,3,CV_64F);
-		vector<int> &route = matchTracker.getRoute(routeIndex[i]).route[0];
-		startpt = route[0];
-		for(int j = 0;j < routeSize[i] - 1;j++)
-		{
-			if ((matchTracker.getHomographyPair(route[j], route[j + 1])).at<double>(0, 0) != -1)
-			{
-				printf("%d %d have pair\n", route[j], route[j + 1]);
-				H = H*matchTracker.getHomographyPair(route[j], route[j + 1]);
-				matchTracker.assignHomographyPair(startpt, route[j + 1], H);
-			}
-			else
-			{
-				printf("%d %d do not have pair\n", route[j], route[j + 1]);
-				Mat tempH = findhomography(matchTracker.getPairFP(route[j], route[j+1]));
-				matchTracker.assignHomographyPair(route[j], route[j + 1], tempH);
-				H = H*tempH;
-				matchTracker.assignHomographyPair(startpt, route[j + 1], H);
-			}
-		}
-		
-	}
-
-	for(int i = 0;i < imageCount;i++)
-	{
-		for(int j = 0;j < imageCount;j++)
-		{
-			if ((matchTracker.getHomographyPair(i, j)).at<double>(0, 0) != -1)
+			if (!(matchTracker.getHomographyPair(i, j)).isEmpty())
 				printf("1 ");
 			else
 				printf("0 ");
 		}
 		printf("\n");
 	}
-
-
-
+	int maxX, maxY, minX, minY;
+	matchTracker.assignHomographyToImage();
+	matchTracker.calculateBoundary(minX, minY, maxX, maxY);
+	
 
 	char c;
 	scanf(" %c", &c);
