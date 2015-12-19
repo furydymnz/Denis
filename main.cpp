@@ -144,19 +144,19 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 		startpt = route[0];
 		for(int j = 0;j < routeSize[i] - 1;j++)
 		{
-			if((matchTracker.getPairHomography(route[j], route[j+1])).at<double>(0,0) != -1)
+			if ((matchTracker.getHomographyPair(route[j], route[j + 1])).at<double>(0, 0) != -1)
 			{
 				printf("%d %d have pair\n", route[j], route[j + 1]);
-				H = H*matchTracker.getPairHomography(route[j], route[j+1]);
-				matchTracker.assignHomography(startpt, route[j+1], H);
+				H = H*matchTracker.getHomographyPair(route[j], route[j + 1]);
+				matchTracker.assignHomographyPair(startpt, route[j + 1], H);
 			}
 			else
 			{
 				printf("%d %d do not have pair\n", route[j], route[j + 1]);
 				Mat tempH = findhomography(matchTracker.getPairFP(route[j], route[j+1]));
-				matchTracker.assignHomography(route[j], route[j+1], tempH);
+				matchTracker.assignHomographyPair(route[j], route[j + 1], tempH);
 				H = H*tempH;
-				matchTracker.assignHomography(startpt, route[j+1], H);
+				matchTracker.assignHomographyPair(startpt, route[j + 1], H);
 			}
 		}
 		
@@ -166,7 +166,7 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	{
 		for(int j = 0;j < imageCount;j++)
 		{
-			if((matchTracker.getPairHomography(i, j)).at<double>(0,0) != -1)
+			if ((matchTracker.getHomographyPair(i, j)).at<double>(0, 0) != -1)
 				printf("1 ");
 			else
 				printf("0 ");
