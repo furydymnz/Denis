@@ -1,5 +1,7 @@
 #include "MatchTracker.h"
-
+#include <opencv2/opencv.hpp>
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/calib3d/calib3d.hpp"
 
 void MatchTracker::assignHomographyToImage()
 {
@@ -8,16 +10,10 @@ void MatchTracker::assignHomographyToImage()
 		printf("assignHomographyToImage: pivotIndex:%d, pairHomographysize:%d \n", pivotIndex, pairHomography.size());
 		printf("pairHomography[i].size():%d \n",  pairHomography[i].size());
 		printf("(%d, %d)", i, pivotIndex);
-		if (!((pairHomography[i][pivotIndex])).isEmpty())
+		if (((pairHomography[i][pivotIndex])).at<double>(0, 0) != -1)
 		{
 			printf("assigining\n");
-			for (int rss = 0; rss < 3; rss++)
-			{
-				for (int pss = 0; pss < 3; pss++)
-					printf("%20.8lf", (getHomographyPair(0, 0)).at(rss, pss));
-				printf("\n");
-			}
-			
+		
 			(images[i])->assignHomography((pairHomography[i][pivotIndex]));
 			printf("done\n");
 		}
@@ -27,9 +23,8 @@ void MatchTracker::assignHomographyToImage()
 	}
 }
 
-void MatchTracker::calculateBoundary(int &minX, int &minY, int &maxX, int &maxY)
+void MatchTracker::calculateBoundary()
 {
-	
 	images[0]->findBoundary();
 	maxX = images[0]->maxX;
 	minX = images[0]->minX;
@@ -50,4 +45,34 @@ void MatchTracker::calculateBoundary(int &minX, int &minY, int &maxX, int &maxY)
 
 	printf("minX: %5d maxX: %5d minY: %5d maxY: %5d\n",
 		minX, maxX, minY, maxY);
+}
+void MatchTracker::applyHomographyTest()
+{
+	Mat rotated;
+	Mat h;
+	for (int i = 0; i < size; i++)
+	{	
+		h = images[i]->getHomography().clone();
+		h.row(2).col(0) = 0;
+		h.row(2).col(1) = 0;
+		
+		int sizeX = maxX - minX, sizeY = maxY - minY;
+		warpPerspective(images[i]->getImage(), rotated, images[i]->getHomography(), Size(sizeX, sizeY), INTER_LINEAR, BORDER_CONSTANT);
+		char f[100];
+		sprintf(f, "YO/%d.jpg", i);
+		imwrite(f, rotated);
+	}
+}
+void MatchTracker::fixHomography()
+{
+	/*
+	Mat h = Mat::eye(3, 3, CV_8UC1);
+	h.row(0).col(2) = -minX;
+	h.row(1).col(2) = -minY;
+
+	for (int i = 0; i < size; i++)
+	{
+		images[i]->assignHomography(images[i]->getHomography())
+	}
+	*/
 }

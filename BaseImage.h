@@ -6,21 +6,18 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
 #include "ipoint.h"
-#include "Homography.h"
 class BaseImage {
 public:
 	Mat image;
-	Mat *mask;
-	Homography homography;
+	Mat mask;
+	Mat homography;
 	int maxX, maxY, minX, minY;
 	//void assignImage(Mat *im) { image = Mat(*im); }
-	void assignImage(Mat im) { printf("bvb"); 
-	image = im.clone(); 
+	void assignImage(Mat im) { image = im.clone();}
 	
-	}
-	void assignHomography(Mat h){ homography.assign(h); }
-	void assignHomography(Homography h){ }
-	Homography getHomography(){ return homography; }
+	void assignHomography(Mat h){ homography = h.clone(); }
+	Mat getHomography(){ return homography; }
+	Mat getImage(){ return image; }
 	void findBoundary();
 	
 	BaseImage(IplImage *ipImage)

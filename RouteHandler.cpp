@@ -242,10 +242,10 @@ void RouteHandler::calculateHomography(MatchTracker &matchTracker)
 		{
 
 			printf("find pair (%d, %d)\n", route[j], route[j + 1]);
-			if (!(matchTracker.getHomographyPair(route[j], route[j + 1])).isEmpty())
+			if ((matchTracker.getHomographyPair(route[j], route[j + 1])).at<double>(0, 0)!=-1)
 			{
 				printf("%d %d have pair\n", route[j], route[j + 1]);
-				H = H * (matchTracker.getHomographyPair(route[j], route[j + 1]).toMat());
+				H = H * (matchTracker.getHomographyPair(route[j], route[j + 1]));
 				printf("assigned Address: %u\n", &H);
 				matchTracker.assignHomographyPair(startpt, route[j + 1], H);
 			}

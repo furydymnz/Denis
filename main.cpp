@@ -64,10 +64,6 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	for (int i = 0; i < vImage.size(); i++)
 	{
 		matchTracker.pushImage(new BaseImage(vImage[i]));
-		char a[100];
-		sprintf(a, "/test/aaa%d.jpg", i);
-		printf("%s\n", a);
-		imwrite("ssss.jpg", (matchTracker.getImage(i)->image));
 	}
 	//Find surf descriptions
 	IpVec tempIpVec;
@@ -112,25 +108,24 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	for (int r = 0; r < 3; r++)
 	{
 		for (int p = 0; p < 3; p++)
-			printf("%20.8lf", (matchTracker.getHomographyPair(0, 0)).at(r, p));
+			printf("%20.8lf", (matchTracker.getHomographyPair(0, 0)).at<double>(r, p));
 		printf("\n");
 	}
 	for (int i = 0; i < imageCount; i++)
 	{
 		for (int j = 0; j < imageCount; j++)
 		{
-			if (!(matchTracker.getHomographyPair(i, j)).isEmpty())
+			if ((matchTracker.getHomographyPair(i, j)).at<double>(0, 0) != -1)
 				printf("1 ");
 			else
 				printf("0 ");
 		}
 		printf("\n");
 	}
-	int maxX, maxY, minX, minY;
-	matchTracker.assignHomographyToImage();
-	matchTracker.calculateBoundary(minX, minY, maxX, maxY);
 	
-
+	matchTracker.assignHomographyToImage();
+	matchTracker.calculateBoundary();
+	matchTracker.applyHomographyTest();
 	char c;
 	scanf(" %c", &c);
 	/*
