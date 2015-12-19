@@ -252,7 +252,9 @@ void RouteHandler::calculateHomography(MatchTracker &matchTracker)
 			else
 			{
 				printf("%d %d do not have pair\n", route[j], route[j + 1]);
-				Mat tempH = findhomography(matchTracker.getPairFP(route[j], route[j + 1]));
+				int reverse = 0;
+				IpPairVec ip = matchTracker.getPairFP(route[j], route[j + 1], reverse);
+				Mat tempH = findhomography(ip, reverse);
 				printf("assigned Address: %u\n", &H);
 				matchTracker.assignHomographyPair(route[j], route[j + 1], tempH);
 				H = H*tempH;

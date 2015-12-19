@@ -47,7 +47,7 @@ void blendImage(int type, Mat &image1, Mat &image2, Mat &imageResult, Mat &t_mas
 void uniqueRandom(int **value, int pointAmount, int randomMax);
 
 //!RANSAC
-Mat findhomography(IpPairVec& matches);
+Mat findhomography(IpPairVec& matches, int reverse);
 
 inline double DIS(double x1, double y1, double x2, double y2);
 

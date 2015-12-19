@@ -282,7 +282,7 @@ void uniqueRandom(int **value, int pointAmount, int randomMax)
 	}
 }
 
-Mat findhomography(IpPairVec& matches)
+Mat findhomography(IpPairVec& matches, int reverse = 0)
 {
 	std::vector<Point2f> targetPt;
 	std::vector<Point2f> destPt;
@@ -306,8 +306,14 @@ Mat findhomography(IpPairVec& matches)
 		//get and store the points
 		for(int j = 0;j < pointAmount;j++){
 			int index = value[j];
-			destPt.push_back(Point2f(matches[index].first.x, matches[index].first.y));
-			targetPt.push_back(Point2f(matches[index].second.x, matches[index].second.y));
+			if (!reverse){
+				destPt.push_back(Point2f(matches[index].first.x, matches[index].first.y));
+				targetPt.push_back(Point2f(matches[index].second.x, matches[index].second.y));
+			}
+			else{
+				targetPt.push_back(Point2f(matches[index].first.x, matches[index].first.y));
+				destPt.push_back(Point2f(matches[index].second.x, matches[index].second.y));
+			}
 		}
 
 		Mat tempH = findHomography(targetPt, destPt, 0);
@@ -321,8 +327,15 @@ Mat findhomography(IpPairVec& matches)
 				}
 			}
 			if(!check){
-				destPt_r.push_back(Point2f(matches[j].first.x, matches[j].first.y));
-				targetPt_r.push_back(Point2f(matches[j].second.x, matches[j].second.y));
+				if (!reverse){
+					destPt_r.push_back(Point2f(matches[j].first.x, matches[j].first.y));
+					targetPt_r.push_back(Point2f(matches[j].second.x, matches[j].second.y));
+				}
+				else
+				{
+					targetPt_r.push_back(Point2f(matches[j].first.x, matches[j].first.y));
+					destPt_r.push_back(Point2f(matches[j].second.x, matches[j].second.y));
+				}
 			}
 		}
 

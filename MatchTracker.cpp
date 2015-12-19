@@ -57,12 +57,33 @@ void MatchTracker::applyHomographyTest()
 		h.row(2).col(1) = 0;
 		
 		int sizeX = maxX - minX, sizeY = maxY - minY;
-		warpPerspective(images[i]->getImage(), rotated, images[i]->getHomography(), Size(sizeX, sizeY), INTER_LINEAR, BORDER_CONSTANT);
+		//warpPerspective(images[i]->getImage(), rotated, images[i]->getHomography(), Size(sizeX, sizeY), INTER_LINEAR, BORDER_CONSTANT);
+		warpPerspective(images[i]->getImage(), rotated, h, Size(sizeX, sizeY), INTER_LINEAR, BORDER_CONSTANT);
 		char f[100];
 		sprintf(f, "YO/%d.jpg", i);
 		imwrite(f, rotated);
 	}
 }
+
+void MatchTracker::printHomography()
+{
+	for (int i = 0; i < size; i++)
+	{
+		for (int r = 0; r < size; r++)
+		{
+			printf("\n%d %d:\n", i, r);
+			for (int m = 0; m < 3; m++)
+			{
+				for (int n = 0; n < 3; n++)
+				{
+					printf("%10.5lf", pairHomography[i][r].at<double>(m, n));
+				}
+				printf("\n");
+			}
+		}
+	}
+}
+
 void MatchTracker::fixHomography()
 {
 	/*

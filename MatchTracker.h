@@ -44,7 +44,20 @@ public:
 		}
 	}
 	void assignFPNum(int i, int r, int fp) { pairNum[i][r] = fp; pairNum[r][i] = fp; }
-	void assignFPPair(int i, int r, IpPairVec fp) { pairFP[i][r] = fp; }
+	void assignFPPair(int i, int r, IpPairVec fp) 
+	{ 
+		pairFP[i][r] = fp; 
+		/*
+		Ipoint temp;
+		for (int i = 0; i < fp.size(); i++)
+		{
+			temp = fp[i].first;
+			fp[i].first = fp[i].second;
+			fp[i].second = temp;
+		}
+		pairFP[r][i] = fp;
+		*/
+	}
 
 	void pushImage(BaseImage *i) { images.push_back(i);  }
 
@@ -58,13 +71,20 @@ public:
 	void calculateBoundary();
 	void fixHomography();
 	void applyHomographyTest();
+	void printHomography();
 	vector<IpPairVec>& getPairFP(int i) { return pairFP[i]; }
-	IpPairVec& getPairFP(int i, int r)
+	IpPairVec& getPairFP(int i, int r, int & reverse)
 	{
 		if (!pairFP[i][r].empty())
+		{
+			reverse = 1;
 			return pairFP[i][r];
-		if (!pairFP[r][i].empty())
+		}
+		else if(!pairFP[r][i].empty())
+		{
+			reverse = 0;
 			return pairFP[r][i];
+		}
 		return IpPairVec();
 	}
 	void assignRoute(int image, vector<int > r){ routes[image].route.push_back(r); }

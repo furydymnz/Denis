@@ -125,6 +125,7 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	
 	matchTracker.assignHomographyToImage();
 	matchTracker.calculateBoundary();
+	matchTracker.printHomography();
 	matchTracker.applyHomographyTest();
 	char c;
 	scanf(" %c", &c);
