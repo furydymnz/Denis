@@ -737,7 +737,7 @@ Mat horizontalBlending(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, int
 	xormask2 = xormask2 > 0;
 	imwrite("test/xormaks1.jpg",xormask1);
 	imwrite("test/xormaks2.jpg",xormask2);
-	Mat errorMap(image1.size(), CV_64FC1);
+	Mat &errorMap = Mat(image1.size(), CV_64FC1);
 	Mat errorGraph(image1.size(), CV_8UC1);
 	// ------------------------------------------
 	double eTopLeft = 0, eBottomLeft = 0, eTop = 0, eLeft = 0, eBottom = 0, eCurrent;
@@ -764,17 +764,6 @@ Mat horizontalBlending(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, int
 
 	for (int j = pt1.x; j <= pt2.x; j++)
 	{
-		/*
-		if( j == pt1.x )
-		{
-			for (int i = 0; i < errorMap.rows; i++)
-			{
-				if (andMasks.at<unsigned char>(i, j)==0)
-					continue;
-				errorMap.at<double>(i, j) = ComputeError(image1, image2, i, j);
-				dirMap[i][j] = CURRENT;
-			}
-		}*/
 		if( j == pt1.x )
 		{
 			for (int i = 0; i < errorMap.rows; i++)
@@ -1008,4 +997,325 @@ void findIntersectionPts(Point2i& pt1, Point2i& pt2, Mat& intersection, Mat& and
 	printf("pt1.x:%d pt1.y:%d\npt2.x:%d pt2.y:%d\n",pt1.x, pt1.y, pt2.x, pt2.y);
 }
 
+ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, int imageCodeX, int imageCodeY)
+{
+	ErrorBundle errorBundle;
+	cv::Mat bothMasks = mask1 | mask2;
+	cv::Mat andMasks = mask1 & mask2;
+	cv::Mat noMask = 255 - bothMasks;
+	Mat xormask2 = mask2 ^ andMasks;
+	Mat xormask1 = mask1 ^ andMasks;
+	xormask1 = xormask1 > 0;
+	xormask2 = xormask2 > 0;
+	imwrite("test/xormaks1.jpg", xormask1);
+	imwrite("test/xormaks2.jpg", xormask2);
+	Mat &errorMap = errorBundle.getErrorMap();
+	errorMap = Mat(image1.size(), CV_64FC1);
+	Mat errorGraph(image1.size(), CV_8UC1);
+	// ------------------------------------------
+	double eTopLeft = 0, eBottomLeft = 0, eTop = 0, eLeft = 0, eBottom = 0, eCurrent;
+
+	double maxError = 0;
+	imwrite("test/andmask.jpg", andMasks);
+	Mat intersection;
+	findIntersection(mask1, mask2, intersection);
+	Point2i pt1, pt2;
+	findIntersectionPts(pt1, pt2, intersection, andMasks);
+
+	//DP
+	direction **dirMap;
+	dirMap = new direction *[image1.rows];
+	for (int i = 0; i < image1.rows; i++)
+	{
+		dirMap[i] = new direction[image1.cols];
+		for (int j = 0; j < image1.cols; j++)
+		{
+			//YO is meaningless
+			dirMap[i][j] = YO;
+		}
+	}
+
+	for (int j = pt1.x; j <= pt2.x; j++)
+	{
+		if (j == pt1.x)
+		{
+			for (int i = 0; i < errorMap.rows; i++)
+			{
+				if (andMasks.at<unsigned char>(i, j) == 0)
+					continue;
+				if (i == pt1.y)
+				{
+					errorMap.at<double>(i, j) = ComputeError(image1, image2, i, j);
+					dirMap[i][j] = CURRENT;
+				}
+				else
+					ComputeHorizontalError(i, j, image1, image2, dirMap, errorMap);
+			}
+			for (int i = errorMap.rows - 1; i >= 0; i--)
+			{
+				if (andMasks.at<unsigned char>(i, j) == 0)
+					continue;
+				if (i == pt1.y)
+				{
+					errorMap.at<double>(i, j) = ComputeError(image1, image2, i, j);
+					dirMap[i][j] = CURRENT;
+				}
+				else
+					ComputeHorizontalError(i, j, image1, image2, dirMap, errorMap);
+			}
+		}
+		else
+		{
+			for (int i = 0; i < errorMap.rows; i++)
+			{
+				if (andMasks.at<unsigned char>(i, j) == 0)
+					continue;
+				ComputeHorizontalError(i, j, image1, image2, dirMap, errorMap);
+			}
+			for (int i = errorMap.rows - 1; i >= 0; i--)
+			{
+				if (andMasks.at<unsigned char>(i, j) == 0)
+					continue;
+				ComputeHorizontalError(i, j, image1, image2, dirMap, errorMap);
+			}
+		}
+
+	}
+	for (int j = pt1.x; j <= pt2.x; j++)
+	{
+		for (int i = 0; i < errorMap.rows; i++)
+			if (i + 1<errorMap.rows && i>0
+				&& dirMap[i - 1][j] == BOTTOM && dirMap[i][j] == TOP)
+			{
+				//may have some error
+				dirMap[i - 1][j] = TOP;
+				dirMap[i][j] = BOTTOM;
+			}
+	}
+
+	//draw errorGraph
+	for (int j = pt1.x; j <= pt2.x; j++)
+	{
+		for (int i = 0; i < errorMap.rows; i++)
+		{
+			if (maxError < errorMap.at<double>(i, j))
+				maxError = errorMap.at<double>(i, j);
+		}
+	}
+	double scale = 255 / maxError;
+	for (int i = 0; i < errorGraph.rows; i++)
+	{
+		for (int r = 0; r < errorGraph.cols; r++)
+		{
+			if (andMasks.at<unsigned char>(i, r) == 0)
+				continue;
+			errorGraph.at<unsigned char>(i, r) =
+				(int)((255 / maxError)*
+					errorMap.at<double>(i, r));
+
+		}
+	}
+	char a[100];
+	sprintf(a, "YO/errorMap_%d_%d.jpg", imageCodeX, imageCodeY);
+	imwrite(a, errorGraph);
+
+	Mat errorSeam(image1.size(), CV_8UC3);
+	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
+	cvtColor(errorGraph, errorSeam, CV_GRAY2BGR);
+
+	double minError = errorMap.at<double>(pt2.y, pt2.x);
+	Point2i startpt = pt2;
+	vector<Point2i> &seam = errorBundle.getpath();
+	seam.push_back(startpt);
+	int x = startpt.x, y = startpt.y;
+	while (1) {
+		if (dirMap[y][x] == CURRENT || dirMap[y][x] == YO)
+			break;
+		switch (dirMap[y][x]) {
+		case TOPLEFT:
+			x--;
+			y--;
+			break;
+		case TOP:
+			y--;
+			break;
+		case LEFT:
+			x--;
+			break;
+		case BOTTOMLEFT:
+			x--;
+			y++;
+			break;
+		case BOTTOM:
+			y++;
+			break;
+		}
+		seam.push_back(Point2i(x, y));
+		errorSeam.at<Vec3b>(y, x) = Vec3b(0, 0, 255);
+		seamMap.at<unsigned char>(y, x) = 255;
+	}
+	sprintf(a, "YO/errorSeam_%d_%d.jpg", imageCodeX, imageCodeY);
+	imwrite(a, errorSeam);
+	sprintf(a, "YO/seamMap_%d_%d.jpg", imageCodeX, imageCodeY);
+	imwrite(a, seamMap);
+	return errorBundle;
+}
+
+ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, int imageCodeX, int imageCodeY)
+{
+	// edited: find regions where no mask is set
+	// compute the region where no mask is set at all, to use those color values unblended
+
+	//5-way DP seam finder
+	ErrorBundle errorBundle;
+	cv::Mat bothMasks = mask1 | mask2;
+	cv::Mat andMasks = mask1 & mask2;
+	cv::Mat noMask = 255 - bothMasks;
+	Mat xormask2 = mask2 ^ andMasks;
+	Mat xormask1 = mask1 ^ andMasks;
+	xormask1 = xormask1 > 0;
+	xormask2 = xormask2 > 0;
+	Mat errorMap(image1.size(), CV_64FC1);
+	Mat errorGraph(image1.size(), CV_8UC1);
+	// ------------------------------------------
+	double eTopLeft = 0, eTopRight = 0, eTop = 0, eLeft = 0, eRight = 0, eCurrent;
+
+	double maxError = 0;
+	Mat intersection;
+	findIntersection(mask1, mask2, intersection);
+	Point2i pt1, pt2;
+	findIntersectionPts(pt1, pt2, intersection, andMasks);
+
+	//DP
+	direction **dirMap;
+	dirMap = new direction *[image1.rows];
+	for (int i = 0; i < image1.rows; i++)
+	{
+		dirMap[i] = new direction[image1.cols];
+		for (int j = 0; j < image1.cols; j++)
+			dirMap[i][j] = YO;
+	}
+
+	for (int i = pt1.y; i <= pt2.y; i++)
+	{
+		if (i == pt1.y)
+		{
+			for (int j = 0; j < errorMap.cols; j++)
+			{
+				if (andMasks.at<unsigned char>(i, j) == 0)
+					continue;
+				if (j == pt1.x)
+				{
+					errorMap.at<double>(i, j) = ComputeError(image1, image2, i, j);
+					dirMap[i][j] = CURRENT;
+				}
+				else
+					ComputeError(i, j, image1, image2, dirMap, errorMap);
+			}
+			for (int j = errorMap.cols - 1; j >= 0; j--)
+			{
+				if (andMasks.at<unsigned char>(i, j) == 0)
+					continue;
+				if (j == pt1.x)
+				{
+					errorMap.at<double>(i, j) = ComputeError(image1, image2, i, j);
+					dirMap[i][j] = CURRENT;
+				}
+				else
+					ComputeError(i, j, image1, image2, dirMap, errorMap);
+			}
+		}
+		else
+		{
+			for (int j = 0; j<errorMap.cols; j++)
+			{
+				if (andMasks.at<unsigned char>(i, j) == 0)
+					continue;
+				ComputeError(i, j, image1, image2, dirMap, errorMap);
+			}
+			for (int j = errorMap.cols - 1; j >= 0; j--)
+			{
+				if (andMasks.at<unsigned char>(i, j) == 0)
+					continue;
+				ComputeError(i, j, image1, image2, dirMap, errorMap);
+			}
+		}
+	}
+	for (int i = pt1.y; i <= pt2.y; i++)
+	{
+		for (int j = 0; j < errorMap.cols; j++)
+			if (j + 1<errorMap.cols && j>0
+				&& dirMap[i][j - 1] == RIGHT && dirMap[i][j] == LEFT)
+			{
+				dirMap[i][j - 1] = LEFT;
+				dirMap[i][j] = RIGHT;
+			}
+	}
+
+	//draw errorGraph
+	for (int i = pt1.y; i <= pt2.y; i++)
+	{
+		for (int j = 0; j < errorMap.cols; j++)
+		{
+			if (maxError < errorMap.at<double>(i, j))
+				maxError = errorMap.at<double>(i, j);
+		}
+	}
+	double scale = 255 / maxError;
+	for (int i = 0; i < errorGraph.rows; i++)
+	{
+		for (int r = 0; r < errorGraph.cols; r++)
+		{
+			if (andMasks.at<unsigned char>(i, r) == 0)
+				continue;
+			errorGraph.at<unsigned char>(i, r) =
+				(int)((255 / maxError)*
+					errorMap.at<double>(i, r));
+		}
+	}
+	char a[100];
+	sprintf(a, "YO/errorMap_%d_%d.jpg", imageCodeX, imageCodeY);
+	imwrite(a, errorGraph);
+
+	Mat errorSeam(image1.size(), CV_8UC3);
+	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
+	cvtColor(errorGraph, errorSeam, CV_GRAY2BGR);
+
+	double minError = errorMap.at<double>(pt2.y, pt2.x);
+	Point2i startpt = pt2;
+	vector<Point2i> &seam = errorBundle.getpath();
+	seam.push_back(startpt);
+	int x = startpt.x, y = startpt.y;
+	while (1) {
+		if (dirMap[y][x] == CURRENT || dirMap[y][x] == YO)
+			break;
+		switch (dirMap[y][x]) {
+		case TOPLEFT:
+			x--;
+			y--;
+			break;
+		case TOP:
+			y--;
+			break;
+		case TOPRIGHT:
+			x++;
+			y--;
+			break;
+		case LEFT:
+			x--;
+			break;
+		case RIGHT:
+			x++;
+			break;
+		}
+		seam.push_back(Point2i(x, y));
+		errorSeam.at<Vec3b>(y, x) = Vec3b(0, 0, 255);
+		seamMap.at<unsigned char>(y, x) = 255;
+	}
+	sprintf(a, "YO/errorSeam_%d_%d.jpg", imageCodeX, imageCodeY);
+	imwrite(a, errorSeam);
+	sprintf(a, "YO/seamMap_%d_%d.jpg", imageCodeX, imageCodeY);
+	imwrite(a, seamMap);
+	return errorBundle;
+}
 

@@ -15,12 +15,11 @@ public:
 	int isEmpty() { return empty; }
 	void setEmpty(int i = 1) { empty = i; }
 	int maxX, maxY, minX, minY;
-	//void assignImage(Mat *im) { image = Mat(*im); }
 	void assignImage(Mat im) { image = im.clone();}
-	
+	void assignMask(Mat im) { mask = im.clone(); }
 	void assignHomography(Mat h){ homography = h.clone(); }
-	Mat getHomography(){ return homography; }
-	Mat getImage(){ return image; }
+	Mat& getHomography(){ return homography; }
+	Mat& getImage(){ return image; }
 	void findBoundary();
 	
 	BaseImage(IplImage *ipImage)

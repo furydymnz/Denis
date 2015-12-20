@@ -1,4 +1,5 @@
 #include "MatchTracker.h"
+#include "ErrorBundle.h"
 #include <opencv2/opencv.hpp>
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
@@ -83,20 +84,44 @@ void MatchTracker::calculateBoundary()
 void MatchTracker::applyHomographyTest()
 {
 	Mat rotated;
-	Mat h;
+	//Mat h;
 	for (int i = 0; i < size; i++)
 	{	
 		if (images[i]->isEmpty()) continue;
+		/*
 		h = images[i]->getHomography().clone();
 		h.row(2).col(0) = 0;
 		h.row(2).col(1) = 0;
-		
+		*/
 		int sizeX = maxX - minX, sizeY = maxY - minY;
-		//warpPerspective(images[i]->getImage(), rotated, images[i]->getHomography(), Size(sizeX, sizeY), INTER_LINEAR, BORDER_CONSTANT);
-		warpPerspective(images[i]->getImage(), rotated, h, Size(sizeX, sizeY), INTER_LINEAR, BORDER_CONSTANT);
+		warpPerspective(images[i]->getImage(), rotated, images[i]->getHomography(), Size(sizeX, sizeY), INTER_LINEAR, BORDER_CONSTANT);
+		//warpPerspective(images[i]->getImage(), rotated, h, Size(sizeX, sizeY), INTER_LINEAR, BORDER_CONSTANT);
 		char f[100];
 		sprintf(f, "YO/%d.jpg", i);
 		imwrite(f, rotated);
+	}
+}
+
+void MatchTracker::generateMask()
+{
+	int sizeX = maxX - minX, sizeY = maxY - minY;
+	Mat rotated;
+	for (int i = 0; i < size; i++)
+	{
+		
+		Mat mask((images[i]->getImage()).size(), CV_8UC1, cv::Scalar(255));
+		if (images[i]->isEmpty()) continue;
+		/*
+		h = images[i]->getHomography().clone();
+		h.row(2).col(0) = 0;
+		h.row(2).col(1) = 0;
+		*/
+		warpPerspective(mask, rotated, images[i]->getHomography(), Size(sizeX, sizeY), INTER_LINEAR, BORDER_CONSTANT);
+		//warpPerspective(images[i]->getImage(), rotated, h, Size(sizeX, sizeY), INTER_LINEAR, BORDER_CONSTANT);
+		char f[100];
+		sprintf(f, "YO/m%d.jpg", i);
+		imwrite(f, rotated);
+		images[i]->assignMask(rotated);
 	}
 }
 
@@ -117,6 +142,30 @@ void MatchTracker::printHomography()
 			}
 		}
 	}
+}
+
+void MatchTracker::calculateErrorPair()
+{
+	for (int i = 0; i < size; i++)
+	{
+		for (int r = 0; r < size; r++)
+			printf("s");
+	}
+}
+
+void MatchTracker::calculateErrorSeamTest()
+{
+	ErrorBundle errorBundle;
+	const float fpThreshold = 0.3;
+	const int fpBottomLimit = 10;
+	for (int i = 0; i < size-1; i++)
+	{
+		for (int j = i + 1; j < size; j++)
+		{
+			
+		}
+	}
+
 }
 
 void MatchTracker::fixHomography()
