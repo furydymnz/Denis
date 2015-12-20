@@ -3,6 +3,42 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
 
+
+MatchTracker::MatchTracker(int size)
+{
+	this->size = size;
+	pairNum.resize(size);
+	pairFP.resize(size);
+	routes.resize(size);
+	images.clear();
+	pairHomography.resize(size);
+	for (int i = 0; i < size; i++)
+	{
+		pairNum[i].resize(size);
+		pairFP[i].resize(size);
+		pairHomography[i].resize(size);
+		pairFP[i].clear();
+
+		for (int j = 0; j < size; j++)
+			pairHomography[i][j] = Mat(3, 3, CV_64F, Scalar(-1, -1, -1));
+	}
+}
+
+IpPairVec& MatchTracker::getPairFP(int i, int r, int & reverse)
+{
+	if (!pairFP[i][r].empty())
+	{
+		reverse = 1;
+		return pairFP[i][r];
+	}
+	else if (!pairFP[r][i].empty())
+	{
+		reverse = 0;
+		return pairFP[r][i];
+	}
+	return IpPairVec();
+}
+
 void MatchTracker::assignHomographyToImage()
 {
 	for (int i = 0; i < size; i++)

@@ -23,41 +23,9 @@ public:
 	vector < vector <Mat> > pairHomography;
 	int maxX, maxY, minX, minY;
 	int size;
-	MatchTracker(int size)
-	{
-		this->size = size;
-		pairNum.resize(size);
-		pairFP.resize(size);
-		routes.resize(size);
-		images.clear();
-		pairHomography.resize(size);
-		for (int i = 0; i < size; i++)
-		{
-			pairNum[i].resize(size);
-			pairFP[i].resize(size);
-			pairHomography[i].resize(size);
-			pairFP[i].clear();
-			
-			for (int j = 0; j < size; j++)
-				pairHomography[i][j] = Mat(3, 3, CV_64F, Scalar(-1, -1, -1));
-			
-		}
-	}
+	MatchTracker(int size);
 	void assignFPNum(int i, int r, int fp) { pairNum[i][r] = fp; pairNum[r][i] = fp; }
-	void assignFPPair(int i, int r, IpPairVec fp) 
-	{ 
-		pairFP[i][r] = fp; 
-		/*
-		Ipoint temp;
-		for (int i = 0; i < fp.size(); i++)
-		{
-			temp = fp[i].first;
-			fp[i].first = fp[i].second;
-			fp[i].second = temp;
-		}
-		pairFP[r][i] = fp;
-		*/
-	}
+	void assignFPPair(int i, int r, IpPairVec fp) { pairFP[i][r] = fp; }
 
 	void pushImage(BaseImage *i) { images.push_back(i);  }
 
@@ -73,24 +41,10 @@ public:
 	void applyHomographyTest();
 	void printHomography();
 	vector<IpPairVec>& getPairFP(int i) { return pairFP[i]; }
-	IpPairVec& getPairFP(int i, int r, int & reverse)
-	{
-		if (!pairFP[i][r].empty())
-		{
-			reverse = 1;
-			return pairFP[i][r];
-		}
-		else if(!pairFP[r][i].empty())
-		{
-			reverse = 0;
-			return pairFP[r][i];
-		}
-		return IpPairVec();
-	}
+	IpPairVec& getPairFP(int i, int r, int & reverse);
 	void assignRoute(int image, vector<int > r){ routes[image].route.push_back(r); }
 	Route& getRoute(int i){ return routes[i]; }
 	int getSize() { return size; }
-
 };
 
 #endif
