@@ -110,6 +110,7 @@ void RouteHandler::removeRedundantRoutes(MatchTracker &matchTracker)
 	for (int i = 0; i < imageCount; i++)
 	{
 		if (i == matchTracker.pivotIndex) continue;
+		if (matchTracker.images[i]->isEmpty()) continue;
 		int maxAvgWeight = 0, maxAvgIndex = -1;
 		Route &currentRoutes = matchTracker.getRoute(i);
 		int routeCount = currentRoutes.route.size();
@@ -172,7 +173,12 @@ void RouteHandler::printRoutes(MatchTracker &matchTracker)
 		if (i == matchTracker.pivotIndex) continue;
 		Route &currentRoutes = matchTracker.getRoute(i);
 		int routeCount = currentRoutes.route.size();
-		if (routeCount == 0) printf("%d has no route\n", i);
+		if (routeCount == 0)
+		{
+			printf("%d has no route\n", i);
+			matchTracker.images[i]->setEmpty(1);
+			continue;
+		}
 		for (int r = 0; r < routeCount; r++)
 		{
 			int routeLength = currentRoutes.route[r].size();
@@ -202,14 +208,16 @@ void RouteHandler::calculateHomography(MatchTracker &matchTracker)
 	//sort
 	for (int i = 0; i < matchTracker.getSize(); i++)
 	{
-		if (i == pivotIndex) continue;
+		if (i == pivotIndex || matchTracker.images[i]->isEmpty()) continue;
 		routeIndex.push_back(i);
 		routeSize.push_back(matchTracker.getRoute(i).route[0].size());
 	}
 	for (int i = 0; i < routeSize.size() - 1; i++)
 	{
+		if (matchTracker.images[i]->isEmpty()) continue;
 		for (int j = i + 1; j < routeSize.size(); j++)
 		{
+			if (matchTracker.images[j]->isEmpty()) continue;
 			if (routeSize[j] < routeSize[i])
 			{
 				int temp = routeIndex[i];
@@ -233,6 +241,7 @@ void RouteHandler::calculateHomography(MatchTracker &matchTracker)
 	int startpt;
 	for (int i = 0; i < routeIndex.size(); i++)
 	{
+		if (matchTracker.images[i]->isEmpty()) continue;
 		printf("For %d:\n", i);
 		printf("routeSize: %d\n", routeSize[i]);
 		H = Mat::eye(3, 3, CV_64F);

@@ -7,31 +7,29 @@ void MatchTracker::assignHomographyToImage()
 {
 	for (int i = 0; i < size; i++)
 	{
+		if (images[i]->isEmpty()) continue;
 		printf("assignHomographyToImage: pivotIndex:%d, pairHomographysize:%d \n", pivotIndex, pairHomography.size());
 		printf("pairHomography[i].size():%d \n",  pairHomography[i].size());
 		printf("(%d, %d)", i, pivotIndex);
 		if (((pairHomography[i][pivotIndex])).at<double>(0, 0) != -1)
 		{
-			printf("assigining\n");
-		
 			(images[i])->assignHomography((pairHomography[i][pivotIndex]));
-			printf("done\n");
 		}
 		else
 			printf("FUCK!!!!!!!!!!!!!!!!!!!!\n");
-		
 	}
 }
 
 void MatchTracker::calculateBoundary()
 {
-	images[0]->findBoundary();
-	maxX = images[0]->maxX;
-	minX = images[0]->minX;
-	maxY = images[0]->maxY;
-	minY = images[0]->minY;
+	images[pivotIndex]->findBoundary();
+	maxX = images[pivotIndex]->maxX;
+	minX = images[pivotIndex]->minX;
+	maxY = images[pivotIndex]->maxY;
+	minY = images[pivotIndex]->minY;
 	for (int i = 1; i < size; i++)
 	{
+		if (images[i]->isEmpty()) continue;
 		images[i]->findBoundary();
 		if (images[i]->maxX > maxX)
 			maxX = images[i]->maxX;
@@ -52,6 +50,7 @@ void MatchTracker::applyHomographyTest()
 	Mat h;
 	for (int i = 0; i < size; i++)
 	{	
+		if (images[i]->isEmpty()) continue;
 		h = images[i]->getHomography().clone();
 		h.row(2).col(0) = 0;
 		h.row(2).col(1) = 0;
