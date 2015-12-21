@@ -12,12 +12,19 @@ public:
 	Mat mask;
 	Mat homography;
 	int maxX, maxY, minX, minY;
+
+	//int dX, dY;
+
 	//void assignImage(Mat *im) { image = Mat(*im); }
 	void assignImage(Mat im) { image = im.clone();}
 	
 	void assignHomography(Mat h){ homography = h.clone(); }
+	void assignMask(Mat &m) { mask = m.clone(); }
 	Mat getHomography(){ return homography; }
+	Mat getMask() { return mask; }
 	Mat getImage(){ return image; }
+	Size getSize() { return image.size(); }
+
 	void findBoundary();
 	
 	BaseImage(IplImage *ipImage)
