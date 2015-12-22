@@ -23,6 +23,7 @@ public:
 	vector < vector <Mat> > pairHomography;
 	int maxX, maxY, minX, minY;
 	int size;
+<<<<<<< HEAD
 	MatchTracker(int size)
 	{
 		this->size = size;
@@ -46,21 +47,11 @@ public:
 	MatchTracker(const MatchTracker& m);
 	MatchTracker& operator=(const MatchTracker& m);
 
+=======
+	MatchTracker(int size);
+>>>>>>> origin/master
 	void assignFPNum(int i, int r, int fp) { pairNum[i][r] = fp; pairNum[r][i] = fp; }
-	void assignFPPair(int i, int r, IpPairVec fp) 
-	{ 
-		pairFP[i][r] = fp; 
-		/*
-		Ipoint temp;
-		for (int i = 0; i < fp.size(); i++)
-		{
-			temp = fp[i].first;
-			fp[i].first = fp[i].second;
-			fp[i].second = temp;
-		}
-		pairFP[r][i] = fp;
-		*/
-	}
+	void assignFPPair(int i, int r, IpPairVec fp) { pairFP[i][r] = fp; }
 
 	void pushImage(BaseImage *i) { images.push_back(i);  }
 
@@ -80,24 +71,10 @@ public:
 	void createMasks();
 
 	vector<IpPairVec>& getPairFP(int i) { return pairFP[i]; }
-	IpPairVec& getPairFP(int i, int r, int & reverse)
-	{
-		if (!pairFP[i][r].empty())
-		{
-			reverse = 1;
-			return pairFP[i][r];
-		}
-		else if(!pairFP[r][i].empty())
-		{
-			reverse = 0;
-			return pairFP[r][i];
-		}
-		return IpPairVec();
-	}
+	IpPairVec& getPairFP(int i, int r, int & reverse);
 	void assignRoute(int image, vector<int > r){ routes[image].route.push_back(r); }
 	Route& getRoute(int i){ return routes[i]; }
 	int getSize() { return size; }
-
 };
 
 #endif

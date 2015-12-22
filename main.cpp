@@ -106,6 +106,7 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 
 	RouteHandler::findConnectingRoute(matchTracker);
 	RouteHandler::calculateHomography(matchTracker);
+
 	for (int r = 0; r < 3; r++)
 	{
 		for (int p = 0; p < 3; p++)
