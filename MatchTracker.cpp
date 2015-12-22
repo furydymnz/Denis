@@ -3,6 +3,34 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
 
+MatchTracker::MatchTracker(const MatchTracker & m)
+{
+	this->size = m.size;
+	this->images = m.images;
+	this->routes = m.routes;
+	this->pairNum = m.pairNum;
+	this->pairFP = m.pairFP;
+	this->pairHomography = m.pairHomography;
+	this->maxX = m.maxX;
+	this->maxY = m.maxY;
+	this->minX = m.minX;
+	this->minY = m.minY;
+}
+
+MatchTracker& MatchTracker:: operator=(const MatchTracker& m)
+{
+	this->size = m.size;
+	this->images = m.images;
+	this->routes = m.routes;
+	this->pairNum = m.pairNum;
+	this->pairFP = m.pairFP;
+	this->pairHomography = m.pairHomography;
+	this->maxX = m.maxX;
+	this->maxY = m.maxY;
+	this->minX = m.minX;
+	this->minY = m.minY;
+}
+
 void MatchTracker::assignHomographyToImage()
 {
 	for (int i = 0; i < size; i++)
@@ -53,8 +81,8 @@ void MatchTracker::applyHomographyTest()
 	for (int i = 0; i < size; i++)
 	{	
 		h = images[i]->getHomography().clone();
-		h.row(2).col(0) = 0;
-		h.row(2).col(1) = 0;
+		//h.row(2).col(0) = 0;
+		//h.row(2).col(1) = 0;
 		
 		int sizeX = maxX - minX, sizeY = maxY - minY;
 		//warpPerspective(images[i]->getImage(), rotated, images[i]->getHomography(), Size(sizeX, sizeY), INTER_LINEAR, BORDER_CONSTANT);
@@ -62,6 +90,37 @@ void MatchTracker::applyHomographyTest()
 		char f[100];
 		sprintf(f, "YO/%d.jpg", i);
 		imwrite(f, rotated);
+	}
+}
+
+void MatchTracker::calculateTranslation()
+{
+	int dX, dY;
+	Mat H;
+	for (int i = 0; i < size; i++)
+	{
+		H = images[i]->getHomography();
+		if (minX < 0)
+		{
+			H.row(0).col(2) = H.at<double>(0, 2) - minX / H.at<double>(0, 0);
+			dX = -minX / H.at<double>(0, 0);
+		}
+		else if (minX >= 0)
+		{
+			H.row(0).col(2) = H.at<double>(0, 2) - minX * H.at<double>(0, 0);
+			dX = minX * H.at<double>(0, 0);
+		}
+
+		if (minY < 0)
+		{
+			H.row(1).col(2) = H.at<double>(1, 2) - minY / H.at<double>(1, 1);
+			dY = -minY / H.at<double>(1, 1);
+		}
+		else if (minY >= 0)
+		{
+			H.row(1).col(2) = H.at<double>(1, 2) - minY* H.at<double>(1, 1);
+			dY = minY* H.at<double>(1, 1);
+		}
 	}
 }
 
@@ -81,6 +140,14 @@ void MatchTracker::printHomography()
 				printf("\n");
 			}
 		}
+	}
+}
+
+void MatchTracker::createMasks()
+{
+	for (int i = 0; i < size; i++)
+	{
+		images[i]->assignMask(Mat(images[i]->getSize(), CV_8UC1, cv::Scalar(255)));
 	}
 }
 

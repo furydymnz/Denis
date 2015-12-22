@@ -43,6 +43,9 @@ public:
 			
 		}
 	}
+	MatchTracker(const MatchTracker& m);
+	MatchTracker& operator=(const MatchTracker& m);
+
 	void assignFPNum(int i, int r, int fp) { pairNum[i][r] = fp; pairNum[r][i] = fp; }
 	void assignFPPair(int i, int r, IpPairVec fp) 
 	{ 
@@ -71,7 +74,11 @@ public:
 	void calculateBoundary();
 	void fixHomography();
 	void applyHomographyTest();
+	void calculateTranslation();
 	void printHomography();
+
+	void createMasks();
+
 	vector<IpPairVec>& getPairFP(int i) { return pairFP[i]; }
 	IpPairVec& getPairFP(int i, int r, int & reverse)
 	{
