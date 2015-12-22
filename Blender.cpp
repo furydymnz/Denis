@@ -10,6 +10,35 @@ Blender::~Blender()
 {
 }
 
+void Blender::blend()
+{
+	generateBlendingOrder();
+	printBlendingOrder();
+	
+	for (int i = 0; i < blendingOrder.size(); i++)
+	{
+		for (int j = 0; j < blendingOrder[i].size() - 1; j++)
+		{
+			Mat mask1 = matchTracker->getImage(blendingOrder[i][j])->getMask();
+			Mat mask2 = matchTracker->getImage(blendingOrder[i][j+1])->getMask();
+			if (j != 0)
+				mask1 = mask1 | andMask;
+
+			andMask = mask1 & mask2;
+
+			Mat intersection;
+			findIntersection(mask1, mask2, intersection);
+			Point2i pt1, pt2;
+			if (findIntersectionPts(pt1, pt2, intersection) == -1)
+				continue;
+
+			findSeam(calculateSeamDirection(pt1, pt2));
+			calculateSeamError();
+
+		}
+	}
+}
+
 void Blender::generateBlendingOrder()
 {
 	int imageCount = this->matchTracker->getSize();
@@ -134,6 +163,7 @@ void Blender::printBlendingOrder()
 	}
 }
 
+
 void Blender::findIntersection(Mat& mask1, Mat& mask2, Mat& intersection)
 {
 	Mat border1 = border(mask1);
@@ -141,6 +171,71 @@ void Blender::findIntersection(Mat& mask1, Mat& mask2, Mat& intersection)
 	intersection = ~(border1 | border2);
 	imwrite("test/inter.jpg", intersection);
 
+}
+
+int Blender::findIntersectionPts(Point2i& pt1, Point2i& pt2, Mat& intersection)
+{
+	vector<Point2i> interpts;
+
+	//get points from intersection Mat
+	for (int i = 0; i < intersection.rows; i++)
+	{
+		for (int j = 0; j < intersection.cols; j++)
+		{
+			if (intersection.at<unsigned char>(i, j) != 0 && andMask.at<unsigned char>(i, j) != 0)
+				interpts.push_back(Point2i(j, i));
+		}
+	}
+
+	if (interpts.size() == 0) 
+	{
+		printf("No intersection\n");
+		return -1;
+	}
+		
+
+	//find the pair of points that have the longest distance
+	double maxDis = 0;
+
+	for (int i = 0; i < interpts.size() - 1; i++)
+	{
+		for (int j = i + 1; j < interpts.size(); j++)
+		{
+			double tempDis = DIS(interpts[i].x, interpts[i].y, interpts[j].x, interpts[j].y);
+			if (tempDis > maxDis)
+			{
+				maxDis = tempDis;
+				pt1 = interpts[i];
+				pt2 = interpts[j];
+			}
+		}
+	}
+	//let pt1 be the leftmost point
+	Point2i temp;
+	if (pt1.x > pt2.x) {
+		temp = pt1;
+		pt1 = pt2;
+		pt2 = temp;
+	}
+
+	printf("pt1.x:%d pt1.y:%d\npt2.x:%d pt2.y:%d\n", pt1.x, pt1.y, pt2.x, pt2.y);
+	return 0;
+}
+
+Blender::seamDirection Blender::calculateSeamDirection(Point2i & pt1, Point2i & pt2)
+{
+	if (abs(pt1.x - pt2.x) > abs(pt1.y - pt2.y))
+		return HORIZONTAL;
+	return VERTICAL;
+}
+
+void Blender::findSeam(seamDirection seamdir)
+{
+
+}
+
+void Blender::calculateSeamError()
+{
 }
 
 cv::Mat Blender::border(cv::Mat mask)
@@ -155,4 +250,74 @@ cv::Mat Blender::border(cv::Mat mask)
 	cv::magnitude(gx, gy, border);
 
 	return border <100;
+}
+
+double Blender::ComputeError(const cv::Mat& image1, const cv::Mat& image2, int i, int c)
+{
+	cv::Vec3b c1 = image1.at<Vec3b>(i, c);
+	cv::Vec3b c2 = image2.at<Vec3b>(i, c);
+	double b = (c1[0] - c2[0])*(c1[0] - c2[0]);
+	double g = (c1[1] - c2[1])*(c1[1] - c2[1]);
+	double r = (c1[2] - c2[2])*(c1[2] - c2[2]);
+	return sqrt(b + g + r);
+}
+
+double Blender::getDPError(int i, int j, Mat &errorMap, direction **dirMap)
+{
+	if (i < 0 || j < 0 || j > errorMap.cols || i > errorMap.rows || dirMap[i][j] == YO)
+		return -1;
+	return errorMap.at<double>(i, j);
+}
+
+void Blender::ComputeError(int i, int j, Mat &image1, Mat &image2, direction **dirMap, Mat &errorMap)
+{
+	double eCurrent = ComputeError(image1, image2, i, j);
+	//TL T TR L R
+	double errors[5] = { getDPError(i - 1, j - 1, errorMap, dirMap),
+		getDPError(i - 1, j, errorMap, dirMap),
+		getDPError(i - 1, j + 1, errorMap, dirMap),
+		getDPError(i, j - 1, errorMap, dirMap),
+		getDPError(i, j + 1, errorMap, dirMap), };
+	double minError = 110000;
+	int minDir = -1;
+	for (int i = 0; i<5; i++)
+	{
+		if (errors[i] == -1)
+			continue;
+		if (errors[i]<minError)
+		{
+			minError = errors[i];
+			minDir = i;
+		}
+	}
+	if (minDir == -1)
+	{
+		dirMap[i][j] = CURRENT;
+		errorMap.at<double>(i, j) = eCurrent;
+	}
+	else
+	{
+		switch (minDir)
+		{
+		case 0:
+			dirMap[i][j] = TOPLEFT;
+			break;
+		case 1:
+			dirMap[i][j] = TOP;
+			break;
+		case 2:
+			dirMap[i][j] = TOPRIGHT;
+			break;
+		case 3:
+			dirMap[i][j] = LEFT;
+			break;
+		case 4:
+			dirMap[i][j] = RIGHT;
+			break;
+		default:
+			dirMap[i][j] = CURRENT;
+		}
+		errorMap.at<double>(i, j) = eCurrent + minError;
+	}
+
 }
