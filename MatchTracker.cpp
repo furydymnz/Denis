@@ -3,7 +3,6 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
 
-<<<<<<< HEAD
 MatchTracker::MatchTracker(const MatchTracker & m)
 {
 	this->size = m.size;
@@ -30,7 +29,7 @@ MatchTracker& MatchTracker:: operator=(const MatchTracker& m)
 	this->maxY = m.maxY;
 	this->minX = m.minX;
 	this->minY = m.minY;
-=======
+}
 
 MatchTracker::MatchTracker(int size)
 {
@@ -65,7 +64,6 @@ IpPairVec& MatchTracker::getPairFP(int i, int r, int & reverse)
 		return pairFP[r][i];
 	}
 	return IpPairVec();
->>>>>>> origin/master
 }
 
 void MatchTracker::assignHomographyToImage()

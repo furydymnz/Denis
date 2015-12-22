@@ -23,33 +23,10 @@ public:
 	vector < vector <Mat> > pairHomography;
 	int maxX, maxY, minX, minY;
 	int size;
-<<<<<<< HEAD
-	MatchTracker(int size)
-	{
-		this->size = size;
-		pairNum.resize(size);
-		pairFP.resize(size);
-		routes.resize(size);
-		images.clear();
-		pairHomography.resize(size);
-		for (int i = 0; i < size; i++)
-		{
-			pairNum[i].resize(size);
-			pairFP[i].resize(size);
-			pairHomography[i].resize(size);
-			pairFP[i].clear();
-			
-			for (int j = 0; j < size; j++)
-				pairHomography[i][j] = Mat(3, 3, CV_64F, Scalar(-1, -1, -1));
-			
-		}
-	}
+	MatchTracker(int size);
 	MatchTracker(const MatchTracker& m);
 	MatchTracker& operator=(const MatchTracker& m);
 
-=======
-	MatchTracker(int size);
->>>>>>> origin/master
 	void assignFPNum(int i, int r, int fp) { pairNum[i][r] = fp; pairNum[r][i] = fp; }
 	void assignFPPair(int i, int r, IpPairVec fp) { pairFP[i][r] = fp; }
 
