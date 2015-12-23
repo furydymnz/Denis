@@ -1133,6 +1133,7 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 	double minError = errorMap.at<double>(pt2.y, pt2.x);
 	Point2i startpt = pt2;
 	vector<Point2i> &seam = errorBundle.getpath();
+	errorBundle.setPathError(minError);
 	seam.push_back(startpt);
 	int x = startpt.x, y = startpt.y;
 	while (1) {
@@ -1291,6 +1292,8 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 	double minError = errorMap.at<double>(pt2.y, pt2.x);
 	Point2i startpt = pt2;
 	vector<Point2i> &seam = errorBundle.getpath();
+	errorBundle.setPathError(minError);
+	printf("~~~%lf\n", minError);
 	seam.push_back(startpt);
 	int x = startpt.x, y = startpt.y;
 	while (1) {

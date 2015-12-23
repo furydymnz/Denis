@@ -532,7 +532,7 @@ Mat Blender::verticalBlending(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mas
 	}
 	}
 	}*/
-	vector<Point2i> seam;
+//	vector<Point2i> seam;
 	seam.push_back(startpt);
 	int x = startpt.x, y = startpt.y;
 	while (1) {
@@ -739,7 +739,7 @@ Mat Blender::horizontalBlending(cv::Mat image1, cv::Mat image2, Mat mask1, Mat m
 	}
 	}
 	}*/
-	vector<Point2i> seam;
+//	vector<Point2i> seam;
 	seam.push_back(startpt);
 	int x = startpt.x, y = startpt.y;
 	while (1) {

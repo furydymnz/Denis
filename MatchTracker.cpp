@@ -50,7 +50,10 @@ MatchTracker::MatchTracker(int size)
 		pairFP[i].clear();
 		pairError[i].resize(size);
 		for (int j = 0; j < size; j++)
+		{
 			pairHomography[i][j] = Mat(3, 3, CV_64F, Scalar(-1, -1, -1));
+			pairError[i][j] = -1;
+		}
 	}
 }
 
@@ -126,6 +129,7 @@ void MatchTracker::pixelPadding()
 		//imwrite(f, temp);
 		temp = Mat(imageSize, CV_8UC1, cv::Scalar(0));
 		images[i]->getMask().copyTo(temp(Rect(1, 1, images[i]->getMask().cols, images[i]->getMask().rows)));
+		images[i]->assignMask(temp);
 		//images[i]->assignMask(temp);
 		//sprintf(f, "YO/impadt%d.jpg", i);
 		//imwrite(f, temp);
@@ -218,6 +222,7 @@ void MatchTracker::printHomography()
 void MatchTracker::calculateErrorPair()
 {
 	Mat andMask;
+	ErrorBundle errorBundle;
 	for (int i = 0; i < size - 1; i++)
 	{
 		for (int r = i + 1; r < size; r++)
@@ -233,7 +238,22 @@ void MatchTracker::calculateErrorPair()
 			if (findIntersectionPts(pt1, pt2, intersection, andMask) == -1)
 			{
 				assignErrorPair(i, r, -1);
+				continue;
 			}
+			
+			if (abs(pt1.x - pt2.x) > abs(pt1.y - pt2.y))
+			{
+				errorBundle = horizontalErrorMap(images[i]->getImage(), images[r]->getImage(), mask1, mask2, i, r);
+			}
+			else
+			{
+				errorBundle = verticalErrorMap(images[i]->getImage(), images[r]->getImage(), mask1, mask2, i, r);
+			}
+
+			double pathError = errorBundle.getPathError() / errorBundle.getpath().size();
+
+			assignErrorPair(i, r, pathError);
+
 		}
 	}
 }

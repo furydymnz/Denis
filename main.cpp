@@ -134,9 +134,27 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 
 	matchTracker.pixelPadding();
 
+	/*
 	Blender blender(&matchTracker);
 	blender.generateBlendingOrder();
 	blender.printBlendingOrder();
+	*/
+
+	matchTracker.calculateErrorPair();
+
+
+	printf("\n");
+	for (int i = 0; i < imageCount; i++)
+	{
+		printf("For %5d: ", i);
+		for (int r = 0; r < imageCount; r++)
+		{
+			printf("%20.8lf", matchTracker.getPairError(i, r));
+		}
+		printf("---\n");
+	}
+	printf("\n");
+
 
 	char c;
 	scanf(" %c", &c);
