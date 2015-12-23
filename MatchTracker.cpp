@@ -40,13 +40,14 @@ MatchTracker::MatchTracker(int size)
 	routes.resize(size);
 	images.clear();
 	pairHomography.resize(size);
+	pairError.resize(size);
 	for (int i = 0; i < size; i++)
 	{
 		pairNum[i].resize(size);
 		pairFP[i].resize(size);
 		pairHomography[i].resize(size);
 		pairFP[i].clear();
-
+		pairError[i].resize(size);
 		for (int j = 0; j < size; j++)
 			pairHomography[i][j] = Mat(3, 3, CV_64F, Scalar(-1, -1, -1));
 	}
