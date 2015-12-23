@@ -965,7 +965,7 @@ int findIntersectionPts(Point2i& pt1, Point2i& pt2, Mat& intersection, Mat& andM
 	{
 		for(int j = 0;j < intersection.cols;j++)
 		{
-			if(intersection.at<unsigned char>(i,j) != 0 && andMasks.at<unsigned char>(i,j) != 0)
+			if(intersection.at<unsigned char>(i,j) != 0 && andMasks.at<unsigned char>(i,j) == 255)
 				interpts.push_back(Point2i(j, i));
 		}
 	}
@@ -991,13 +991,6 @@ int findIntersectionPts(Point2i& pt1, Point2i& pt2, Mat& intersection, Mat& andM
 				pt2 = interpts[j];
 			}
 		}
-	}
-	//let pt1 be the leftmost point
-	Point2i temp;
-	if(pt1.x > pt2.x){
-		temp = pt1;
-		pt1 = pt2;
-		pt2 = temp;
 	}
 
 	printf("pt1.x:%d pt1.y:%d\npt2.x:%d pt2.y:%d\n",pt1.x, pt1.y, pt2.x, pt2.y);
@@ -1028,6 +1021,15 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 	findIntersection(mask1, mask2, intersection);
 	Point2i pt1, pt2;
 	findIntersectionPts(pt1, pt2, intersection, andMasks);
+
+	//let pt1 be the leftmost point
+	Point2i temp;
+	if (pt1.x > pt2.x) {
+		temp = pt1;
+		pt1 = pt2;
+		pt2 = temp;
+	}
+
 
 	//DP
 	direction **dirMap;
@@ -1185,6 +1187,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 	xormask2 = xormask2 > 0;
 	Mat errorMap(image1.size(), CV_64FC1);
 	Mat errorGraph(image1.size(), CV_8UC1);
+	imwrite("YO/andMask.jpg", andMasks);
 	// ------------------------------------------
 	double eTopLeft = 0, eTopRight = 0, eTop = 0, eLeft = 0, eRight = 0, eCurrent;
 
@@ -1193,6 +1196,14 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 	findIntersection(mask1, mask2, intersection);
 	Point2i pt1, pt2;
 	findIntersectionPts(pt1, pt2, intersection, andMasks);
+
+	//let pt1 be the leftmost point
+	Point2i temp;
+	if (pt1.y > pt2.y) {
+		temp = pt1;
+		pt1 = pt2;
+		pt2 = temp;
+	}
 
 	//DP
 	direction **dirMap;
@@ -1322,6 +1333,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 		errorSeam.at<Vec3b>(y, x) = Vec3b(0, 0, 255);
 		seamMap.at<unsigned char>(y, x) = 255;
 	}
+	printf("~~~%d\n", seam.size());
 	sprintf(a, "YO/errorSeam_%d_%d.jpg", imageCodeX, imageCodeY);
 	imwrite(a, errorSeam);
 	sprintf(a, "YO/seamMap_%d_%d.jpg", imageCodeX, imageCodeY);

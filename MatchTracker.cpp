@@ -246,10 +246,12 @@ void MatchTracker::calculateErrorPair()
 			
 			if (abs(pt1.x - pt2.x) > abs(pt1.y - pt2.y))
 			{
+				printf("Horizontal\n");
 				errorBundle = horizontalErrorMap(images[i]->getImage(), images[r]->getImage(), mask1, mask2, i, r);
 			}
 			else
 			{
+				printf("Vertical\n");
 				errorBundle = verticalErrorMap(images[i]->getImage(), images[r]->getImage(), mask1, mask2, i, r);
 			}
 
