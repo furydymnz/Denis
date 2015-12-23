@@ -134,7 +134,18 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	matchTracker.applyHomography();
 
 	matchTracker.pixelPadding();
+	RouteHandler::findBlendingOrder(matchTracker);
 
+
+	printf("============Blending Order============\n");
+	int size = matchTracker.getBlendingOrder().size();
+	for (int i = 0; i < size; i++)
+	{
+		vector<int> &order = matchTracker.getBlendingOrder()[i];
+		for (int r = 0; r < order.size(); r++)
+			printf("%d ->", order[r]);
+		printf("\n");
+	}
 	/*
 	Blender blender(&matchTracker);
 	blender.generateBlendingOrder();
@@ -144,7 +155,7 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	matchTracker.calculateErrorPair();
 
 
-	printf("\n");
+	printf("=============PairError=========\n");
 	for (int i = 0; i < imageCount; i++)
 	{
 		printf("For %5d: ", i);

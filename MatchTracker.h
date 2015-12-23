@@ -23,6 +23,7 @@ public:
 	vector < vector <IpPairVec> > pairFP;
 	vector < vector <Mat> > pairHomography;
 	vector < vector <double> > pairError;
+	vector < vector<int> > blendingOrder;
 	int maxX, maxY, minX, minY;
 	int size;
 	Size imageSize;
@@ -62,6 +63,7 @@ public:
 	void assignRoute(int image, vector<int > r){ routes[image].route.push_back(r); }
 	Route& getRoute(int i){ return routes[i]; }
 	int getSize() { return size; }
+	vector < vector<int> >& getBlendingOrder(){ return blendingOrder; }
 
 };
 

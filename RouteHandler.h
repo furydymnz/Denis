@@ -11,6 +11,7 @@ public:
 	static void findConnectingRoute(MatchTracker &matchTracker);
 	static void countRoutesWeight(MatchTracker &matchTracker);
 	static void calculateHomography(MatchTracker &matchTracker);
+	static void findBlendingOrder(MatchTracker &matchTracker);
 };
 
 
