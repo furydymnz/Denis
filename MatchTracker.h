@@ -25,6 +25,9 @@ public:
 	int maxX, maxY, minX, minY;
 	int size;
 	MatchTracker(int size);
+	MatchTracker(const MatchTracker& m);
+	MatchTracker& operator=(const MatchTracker& m);
+
 	void assignFPNum(int i, int r, int fp) { pairNum[i][r] = fp; pairNum[r][i] = fp; }
 	void assignErrorPair(int i, int r, double err) { pairError[i][r] = err; pairError[r][i] = err; }
 	void assignFPPair(int i, int r, IpPairVec fp) { pairFP[i][r] = fp; }
@@ -42,10 +45,15 @@ public:
 	void calculateBoundary();
 	void fixHomography();
 	void applyHomographyTest();
+
 	void generateMask();
 	void printHomography();
 	void calculateErrorPair();
 	void calculateErrorSeamTest();
+
+
+	void calculateTranslation();
+
 
 
 	vector<IpPairVec>& getPairFP(int i) { return pairFP[i]; }

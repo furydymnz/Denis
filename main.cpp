@@ -1,4 +1,4 @@
-/*********************************************************** 
+﻿/*********************************************************** 
 *  --- OpenSURF ---                                       *
 *  This library is distributed under the GNU GPL. Please   *
 *  use the contact form at http://www.chrisevansdev.com    *
@@ -14,6 +14,7 @@
 #include "RouteHandler.h"
 #include "MatchTracker.h"
 #include "BaseImage.h"
+#include "Blender.h"
 #include <ctime>
 #include <iostream>
 #include <vector>
@@ -127,8 +128,15 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	matchTracker.assignHomographyToImage();
 	matchTracker.calculateBoundary();
 	matchTracker.printHomography();
+	matchTracker.calculateTranslation();
 	matchTracker.applyHomographyTest();
+
 	matchTracker.generateMask();
+
+	Blender blender(&matchTracker);
+	blender.generateBlendingOrder();
+	blender.printBlendingOrder();
+
 	char c;
 	scanf(" %c", &c);
 	/*
