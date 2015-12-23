@@ -18,11 +18,11 @@ public:
 
 	void assignImage(Mat im) { image = im.clone();}
 	void assignHomography(Mat h){ homography = h.clone(); }
-	void assignMask(Mat &m) { mask = m.clone(); }
+	void assignMask(Mat m) { mask = m.clone(); }
 
-	Mat getHomography(){ return homography; }
-	Mat getMask() { return mask; }
-	Mat getImage(){ return image; }
+	Mat& getHomography(){ return homography; }
+	Mat& getMask() { return mask; }
+	Mat& getImage(){ return image; }
 	Size getSize() { return image.size(); }
 
 	void findBoundary();

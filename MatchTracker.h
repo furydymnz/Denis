@@ -24,6 +24,7 @@ public:
 	vector < vector <double> > pairError;
 	int maxX, maxY, minX, minY;
 	int size;
+	Size imageSize;
 	MatchTracker(int size);
 	MatchTracker(const MatchTracker& m);
 	MatchTracker& operator=(const MatchTracker& m);
@@ -44,15 +45,14 @@ public:
 	void assignHomographyToImage();
 	void calculateBoundary();
 	void fixHomography();
-	void applyHomographyTest();
+	void applyHomography();
 
 	void generateMask();
 	void printHomography();
 	void calculateErrorPair();
 	void calculateErrorSeamTest();
-
-
 	void calculateTranslation();
+	void pixelPadding();
 
 
 
@@ -61,6 +61,7 @@ public:
 	void assignRoute(int image, vector<int > r){ routes[image].route.push_back(r); }
 	Route& getRoute(int i){ return routes[i]; }
 	int getSize() { return size; }
+
 };
 
 #endif

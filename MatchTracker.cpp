@@ -104,47 +104,63 @@ void MatchTracker::calculateBoundary()
 		if (images[i]->minY < minY)
 			minY = images[i]->minY;
 	}
-
+	imageSize = Size(maxX - minX, maxY - minY);
 	printf("minX: %5d maxX: %5d minY: %5d maxY: %5d\n",
 		minX, maxX, minY, maxY);
+	
 }
-void MatchTracker::applyHomographyTest()
+void MatchTracker::pixelPadding()
 {
-	Mat rotated;
-	//Mat h;
+	Mat temp;
+	imageSize = Size(imageSize.width + 2, imageSize.height + 2);
+	for (int i = 0; i < size; i++)
+	{
+		if (images[i]->isEmpty()) continue;
+		temp = Mat(imageSize, CV_8UC3, cv::Scalar(0, 0, 0));
+		images[i]->getImage().copyTo(temp(Rect(1, 1, images[i]->getImage().cols, images[i]->getImage().rows)));
+		images[i]->assignImage(temp);
+		//char f[100];
+		//sprintf(f, "YO/impad%d.jpg", i);
+		//imwrite(f, temp);
+		temp = Mat(imageSize, CV_8UC1, cv::Scalar(0));
+		images[i]->getMask().copyTo(temp(Rect(1, 1, images[i]->getMask().cols, images[i]->getMask().rows)));
+		//images[i]->assignMask(temp);
+		//sprintf(f, "YO/impadt%d.jpg", i);
+		//imwrite(f, temp);
+	}
+}
+void MatchTracker::applyHomography()
+{
+	
+
 	for (int i = 0; i < size; i++)
 	{	
 		if (images[i]->isEmpty()) continue;
 		
-		int sizeX = maxX - minX, sizeY = maxY - minY;
-		warpPerspective(images[i]->getImage(), rotated, images[i]->getHomography(), Size(sizeX, sizeY), INTER_LINEAR, BORDER_CONSTANT);
-		//warpPerspective(images[i]->getImage(), rotated, h, Size(sizeX, sizeY), INTER_LINEAR, BORDER_CONSTANT);
+		
+		warpPerspective(images[i]->getImage(), images[i]->getImage(), images[i]->getHomography(), imageSize, INTER_LINEAR, BORDER_CONSTANT);
+
 		char f[100];
 		sprintf(f, "YO/%d.jpg", i);
-		imwrite(f, rotated);
+		imwrite(f, images[i]->getImage());
 	}
 }
 
 void MatchTracker::generateMask()
 {
-	int sizeX = maxX - minX, sizeY = maxY - minY;
-	Mat rotated;
+	
 	for (int i = 0; i < size; i++)
 	{
-
 		Mat mask((images[i]->getImage()).size(), CV_8UC1, cv::Scalar(255));
+
 		if (images[i]->isEmpty()) continue;
-		/*
-		h = images[i]->getHomography().clone();
-		h.row(2).col(0) = 0;
-		h.row(2).col(1) = 0;
-		*/
-		warpPerspective(mask, rotated, images[i]->getHomography(), Size(sizeX, sizeY), INTER_LINEAR, BORDER_CONSTANT);
-		//warpPerspective(images[i]->getImage(), rotated, h, Size(sizeX, sizeY), INTER_LINEAR, BORDER_CONSTANT);
+
+		warpPerspective(mask, mask, images[i]->getHomography(), imageSize, INTER_LINEAR, BORDER_CONSTANT);
+		
 		char f[100];
 		sprintf(f, "YO/m%d.jpg", i);
-		imwrite(f, rotated);
-		images[i]->assignMask(rotated);
+		imwrite(f, mask);
+		images[i]->assignMask(mask);
 	}
 }
 
@@ -199,10 +215,12 @@ void MatchTracker::printHomography()
 
 void MatchTracker::calculateErrorPair()
 {
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < size - 1; i++)
 	{
-		for (int r = 0; r < size; r++)
-			printf("s");
+		for (int r = i + 1; r < size; r++)
+		{
+
+		}
 	}
 }
 
