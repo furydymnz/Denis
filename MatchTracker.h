@@ -18,6 +18,7 @@ public:
 	static const int pivotIndex = 0;
 	vector < BaseImage *> images;
 	vector < Route > routes;
+	vector <vector <int> > pairConnection;
 	vector < vector <int> > pairNum;
 	vector < vector <IpPairVec> > pairFP;
 	vector < vector <Mat> > pairHomography;
@@ -26,8 +27,6 @@ public:
 	int size;
 	Size imageSize;
 	MatchTracker(int size);
-	MatchTracker(const MatchTracker& m);
-	MatchTracker& operator=(const MatchTracker& m);
 
 	void assignFPNum(int i, int r, int fp) { pairNum[i][r] = fp; pairNum[r][i] = fp; }
 	void assignErrorPair(int i, int r, double err) { pairError[i][r] = err; pairError[r][i] = err; }
@@ -38,9 +37,11 @@ public:
 	vector<int>& getPairNum(int i) { return pairNum[i]; }
 	int getPairNum(int i, int r){ return pairNum[i][r]; }
 	double getPairError(int i, int r) { return pairError[i][r]; }
+	int getPairConnection(int i, int r) { return pairConnection[i][r]; };
 	BaseImage* getImage(int i){ return (images[i]); }
 	Mat getHomographyPair(int i, int r){ return (pairHomography[i][r]); }
 	void assignHomographyPair(int i, int r, Mat h){pairHomography[i][r] = h.clone();}
+	void calculatePairConnection();
 
 	void assignHomographyToImage();
 	void calculateBoundary();

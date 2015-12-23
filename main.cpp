@@ -104,6 +104,7 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	}
 	printf("\n");
 
+	matchTracker.calculatePairConnection();
 	RouteHandler::findConnectingRoute(matchTracker);
 	RouteHandler::calculateHomography(matchTracker);
 

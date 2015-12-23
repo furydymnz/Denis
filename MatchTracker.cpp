@@ -5,33 +5,6 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
 
-MatchTracker::MatchTracker(const MatchTracker & m)
-{
-	this->size = m.size;
-	this->images = m.images;
-	this->routes = m.routes;
-	this->pairNum = m.pairNum;
-	this->pairFP = m.pairFP;
-	this->pairHomography = m.pairHomography;
-	this->maxX = m.maxX;
-	this->maxY = m.maxY;
-	this->minX = m.minX;
-	this->minY = m.minY;
-}
-
-MatchTracker& MatchTracker:: operator=(const MatchTracker& m)
-{
-	this->size = m.size;
-	this->images = m.images;
-	this->routes = m.routes;
-	this->pairNum = m.pairNum;
-	this->pairFP = m.pairFP;
-	this->pairHomography = m.pairHomography;
-	this->maxX = m.maxX;
-	this->maxY = m.maxY;
-	this->minX = m.minX;
-	this->minY = m.minY;
-}
 
 MatchTracker::MatchTracker(int size)
 {
@@ -42,6 +15,7 @@ MatchTracker::MatchTracker(int size)
 	images.clear();
 	pairHomography.resize(size);
 	pairError.resize(size);
+	pairConnection.resize(size);
 	for (int i = 0; i < size; i++)
 	{
 		pairNum[i].resize(size);
@@ -49,6 +23,7 @@ MatchTracker::MatchTracker(int size)
 		pairHomography[i].resize(size);
 		pairFP[i].clear();
 		pairError[i].resize(size);
+		pairConnection[i].resize(size);
 		for (int j = 0; j < size; j++)
 		{
 			pairHomography[i][j] = Mat(3, 3, CV_64F, Scalar(-1, -1, -1));
@@ -70,6 +45,32 @@ IpPairVec& MatchTracker::getPairFP(int i, int r, int & reverse)
 		return pairFP[r][i];
 	}
 	return IpPairVec();
+}
+
+void MatchTracker::calculatePairConnection()
+{
+	const float fpThreshold = 0.3;
+	const int fpBottomLimit = 10;
+	for (int i = 0; i < size; i++)
+	{
+		vector<int> currentLine = getPairNum(i);
+		int maxMatch = 0;
+		for (int j = 0; j < size; j++)
+		{
+			if (currentLine[j] > maxMatch)
+				maxMatch = currentLine[j];
+		}
+
+		for (int r = 0; r < size; r++)
+		{
+			if (currentLine[r] < maxMatch*fpThreshold ||
+				currentLine[r] < fpBottomLimit)
+				pairConnection[i][r] = 0;
+			else
+				pairConnection[i][r] = 1;
+		}
+
+	}
 }
 
 void MatchTracker::assignHomographyToImage()
@@ -227,6 +228,8 @@ void MatchTracker::calculateErrorPair()
 	{
 		for (int r = i + 1; r < size; r++)
 		{
+			if (!getPairConnection(i, r))
+				continue;
 			Mat& mask1 = getImage(i)->getMask();
 			Mat& mask2 = getImage(r)->getMask();
 
