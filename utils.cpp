@@ -389,7 +389,6 @@ void findIntersection(Mat& mask1, Mat& mask2, Mat& intersection)
 	Mat border2 = border(mask2);
 	intersection = ~(border1 | border2);
 	imwrite("test/inter.jpg", intersection);
-
 }
 double getDPError(int i, int j, Mat &errorMap, direction **dirMap)
 {
@@ -965,7 +964,7 @@ int findIntersectionPts(Point2i& pt1, Point2i& pt2, Mat& intersection, Mat& andM
 	{
 		for(int j = 0;j < intersection.cols;j++)
 		{
-			if(intersection.at<unsigned char>(i,j) != 0 && andMasks.at<unsigned char>(i,j) != 0)
+			if (intersection.at<unsigned char>(i, j) != 0 && andMasks.at<unsigned char>(i, j) != 0)
 				interpts.push_back(Point2i(j, i));
 		}
 	}

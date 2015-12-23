@@ -113,7 +113,6 @@ void MatchTracker::calculateBoundary()
 	imageSize = Size(maxX - minX, maxY - minY);
 	printf("minX: %5d maxX: %5d minY: %5d maxY: %5d\n",
 		minX, maxX, minY, maxY);
-	
 }
 void MatchTracker::pixelPadding()
 {

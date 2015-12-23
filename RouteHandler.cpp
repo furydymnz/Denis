@@ -2,7 +2,115 @@
 #include "utils.h"
 
 using namespace std;
+void RouteHandler::findBlendingOrder(MatchTracker &matchTracker)
+{
+	int imageCount = matchTracker.getSize();
 
+	const float fpThreshold = 0.3;
+	const int fpBottomLimit = 10;
+	vector <int> route;
+	vector <pair<int, int> > stack;
+	vector <vector <int> > tempOrder;
+	int next, index, current;
+	for (int i = 0; i < imageCount; i++)
+	{
+		stack.clear();
+		route.clear();
+		route.push_back(i);
+		index = 1;
+		int maxMatch = 0;
+		vector<int> currentLine = matchTracker.getPairNum(i);
+		for (int r = 0; r < imageCount; r++)
+		{
+			if (r == i) continue;
+			if (currentLine[r]>maxMatch)
+				maxMatch = currentLine[r];
+		}
+		for (int r = 0; r < imageCount; r++)
+		{
+			if (r == i) continue;
+			if (currentLine[r] < maxMatch*fpThreshold ||
+				currentLine[r] < fpBottomLimit)
+				continue;
+			stack.push_back(pair<int, int>(r, index));
+		}
+
+		while (!stack.empty())
+		{
+			next = stack.back().first;
+			route.push_back(next);
+			stack.pop_back();
+
+			if (route.size() == imageCount)
+			{
+				tempOrder.push_back(route);
+				if (stack.size() == 0)
+					current = 0;
+				else
+					current = stack.back().second;
+				while (route.size() > current)
+					route.pop_back();
+				index = current;
+				continue;
+			}
+
+			bool isPushed = false;
+			index++;
+			vector<int> currentLine = matchTracker.getPairNum(next);
+			for (int r = 0; r < imageCount; r++)
+			{
+				if (r == i) continue;
+				if (currentLine[r]>maxMatch)
+					maxMatch = currentLine[r];
+			}
+			for (int r = 0; r < imageCount; r++)
+			{
+				if (r == next) continue;
+
+				if (currentLine[r] < maxMatch*fpThreshold ||
+					currentLine[r] < fpBottomLimit)
+					continue;
+
+				bool duplicate = false;
+
+				for (int p = 0; p < route.size(); p++)
+				if (route[p] == r) duplicate = true;
+				if (!duplicate)
+				{
+					stack.push_back(pair<int, int>(r, index));
+					isPushed = true;
+				}
+
+			}
+			if (!isPushed) {
+				if (stack.size() == 0)
+					current = 0;
+				else
+					current = stack.back().second;
+				while (route.size() > current)
+					route.pop_back();
+
+				index--;
+			}
+		}
+	}
+
+	for (int i = 0; i < tempOrder.size(); i++)
+	{
+		vector <int> rev;
+		rev.resize(tempOrder[i].size());
+		reverse_copy(tempOrder[i].begin(), tempOrder[i].end(), rev.begin());
+		for (int j = i + 1; j < tempOrder.size(); j++)
+		{
+			if (rev == tempOrder[j])
+			{
+				tempOrder.erase(tempOrder.begin() + j);
+				break;
+			}
+		}
+		matchTracker.getBlendingOrder().push_back(tempOrder[i]);
+	}
+}
 //Find connecting route
 void RouteHandler::findConnectingRoute(MatchTracker &matchTracker)
 {
@@ -122,6 +230,7 @@ void RouteHandler::removeRedundantRoutes(MatchTracker &matchTracker)
 		currentRoutes.routeWeightAvg.push_back(maxAvgWeight);
 	}
 }
+
 void RouteHandler::countRoutesWeight(MatchTracker &matchTracker)
 {
 	int imageCount = matchTracker.getSize();
