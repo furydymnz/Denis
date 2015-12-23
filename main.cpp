@@ -129,9 +129,10 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	matchTracker.calculateBoundary();
 	matchTracker.printHomography();
 	matchTracker.calculateTranslation();
-	matchTracker.applyHomographyTest();
-
 	matchTracker.generateMask();
+	matchTracker.applyHomography();
+
+	matchTracker.pixelPadding();
 
 	Blender blender(&matchTracker);
 	blender.generateBlendingOrder();
