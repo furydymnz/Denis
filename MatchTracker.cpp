@@ -1,5 +1,6 @@
 #include "MatchTracker.h"
 #include "ErrorBundle.h"
+#include "utils.h"
 #include <opencv2/opencv.hpp>
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
@@ -216,11 +217,23 @@ void MatchTracker::printHomography()
 
 void MatchTracker::calculateErrorPair()
 {
+	Mat andMask;
 	for (int i = 0; i < size - 1; i++)
 	{
 		for (int r = i + 1; r < size; r++)
 		{
+			Mat& mask1 = getImage(i)->getMask();
+			Mat& mask2 = getImage(r)->getMask();
 
+			andMask = mask1 & mask2;
+
+			Mat intersection;
+			findIntersection(mask1, mask2, intersection);
+			Point2i pt1, pt2;
+			if (findIntersectionPts(pt1, pt2, intersection, andMask) == -1)
+			{
+				assignErrorPair(i, r, -1);
+			}
 		}
 	}
 }

@@ -36,7 +36,9 @@ class Blender
 	double getDPError(int i, int j, Mat &errorMap, direction **dirMap);
 	void ComputeError(int i, int j, Mat &image1, Mat &image2, direction **dirMap, Mat &errorMap);
 	double ComputeError(const cv::Mat& image1, const cv::Mat& image2, int i, int c);
-	
+	void ComputeHorizontalError(int i, int j, Mat &image1, Mat &image2, direction **dirMap, Mat &errorMap);
+	Mat verticalBlending(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, vector<Point2i>& seam);
+	Mat horizontalBlending(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, int dY, vector<Point2i>& seam);
 
 public:
 	void generateBlendingOrder();

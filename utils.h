@@ -52,7 +52,7 @@ Mat findhomography(IpPairVec& matches, int reverse);
 inline double DIS(double x1, double y1, double x2, double y2);
 
 void findIntersection(Mat& mask1, Mat& mask2, Mat& intersection);
-void findIntersectionPts(Point2i& pt1, Point2i& pt2, Mat& intersection, Mat& andMasks);
+int findIntersectionPts(Point2i& pt1, Point2i& pt2, Mat& intersection, Mat& andMasks);
 Mat verticalBlending(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2);
 Mat horizontalBlending(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, int dY);
 ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, int imageCodeX = 0, int imageCodeY = 0);

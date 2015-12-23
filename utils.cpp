@@ -956,7 +956,7 @@ Mat horizontalBlending(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, int
 	return blended;
 }
 
-void findIntersectionPts(Point2i& pt1, Point2i& pt2, Mat& intersection, Mat& andMasks)
+int findIntersectionPts(Point2i& pt1, Point2i& pt2, Mat& intersection, Mat& andMasks)
 {
 	vector<Point2i> interpts;
 
@@ -968,6 +968,12 @@ void findIntersectionPts(Point2i& pt1, Point2i& pt2, Mat& intersection, Mat& and
 			if(intersection.at<unsigned char>(i,j) != 0 && andMasks.at<unsigned char>(i,j) != 0)
 				interpts.push_back(Point2i(j, i));
 		}
+	}
+
+	if (interpts.size() == 0)
+	{
+		printf("No intersection\n");
+		return -1;
 	}
 
 	//find the pair of points that have the longest distance
@@ -995,6 +1001,7 @@ void findIntersectionPts(Point2i& pt1, Point2i& pt2, Mat& intersection, Mat& and
 	}
 
 	printf("pt1.x:%d pt1.y:%d\npt2.x:%d pt2.y:%d\n",pt1.x, pt1.y, pt2.x, pt2.y);
+	return 0;
 }
 
 ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, int imageCodeX, int imageCodeY)
