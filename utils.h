@@ -1,4 +1,4 @@
-﻿/*********************************************************** 
+/*********************************************************** 
 *  --- OpenSURF ---                                       *
 *  This library is distributed under the GNU GPL. Please   *
 *  use the contact form at http://www.chrisevansdev.com    *
@@ -14,7 +14,7 @@
 
 #include <cv.h>
 #include "ipoint.h"
-
+#include "ErrorBundle.h"
 #include <vector>
 using namespace cv;
 
@@ -55,5 +55,6 @@ void findIntersection(Mat& mask1, Mat& mask2, Mat& intersection);
 void findIntersectionPts(Point2i& pt1, Point2i& pt2, Mat& intersection, Mat& andMasks);
 Mat verticalBlending(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2);
 Mat horizontalBlending(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, int dY);
-
+ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, int imageCodeX = 0, int imageCodeY = 0);
+ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, int imageCodeX = 0, int imageCodeY = 0);
 #endif

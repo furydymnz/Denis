@@ -130,11 +130,13 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	matchTracker.printHomography();
 	matchTracker.calculateTranslation();
 	matchTracker.applyHomographyTest();
-	matchTracker.createMasks();
+
+	matchTracker.generateMask();
 
 	Blender blender(&matchTracker);
 	blender.generateBlendingOrder();
 	blender.printBlendingOrder();
+
 	char c;
 	scanf(" %c", &c);
 	/*
