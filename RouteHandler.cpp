@@ -19,18 +19,10 @@ void RouteHandler::findBlendingOrder(MatchTracker &matchTracker)
 		route.push_back(i);
 		index = 1;
 		int maxMatch = 0;
-		vector<int> currentLine = matchTracker.getPairNum(i);
 		for (int r = 0; r < imageCount; r++)
 		{
 			if (r == i) continue;
-			if (currentLine[r]>maxMatch)
-				maxMatch = currentLine[r];
-		}
-		for (int r = 0; r < imageCount; r++)
-		{
-			if (r == i) continue;
-			if (currentLine[r] < maxMatch*fpThreshold ||
-				currentLine[r] < fpBottomLimit)
+			if (!matchTracker.getPairConnection(i, r))
 				continue;
 			stack.push_back(pair<int, int>(r, index));
 		}
@@ -56,19 +48,11 @@ void RouteHandler::findBlendingOrder(MatchTracker &matchTracker)
 
 			bool isPushed = false;
 			index++;
-			vector<int> currentLine = matchTracker.getPairNum(next);
-			for (int r = 0; r < imageCount; r++)
-			{
-				if (r == i) continue;
-				if (currentLine[r]>maxMatch)
-					maxMatch = currentLine[r];
-			}
 			for (int r = 0; r < imageCount; r++)
 			{
 				if (r == next) continue;
 
-				if (currentLine[r] < maxMatch*fpThreshold ||
-					currentLine[r] < fpBottomLimit)
+				if (!matchTracker.getPairConnection(next, r))
 					continue;
 
 				bool duplicate = false;

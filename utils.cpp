@@ -1167,6 +1167,17 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 	imwrite(a, errorSeam);
 	sprintf(a, "YO/seamMap_%d_%d.jpg", imageCodeX, imageCodeY);
 	imwrite(a, seamMap);
+
+	bothMasks.release();
+	andMasks.release();
+	noMask.release();
+	xormask2.release();
+	xormask1.release();
+	intersection.release();
+	errorGraph.release();
+	errorSeam.release();
+	seamMap.release();
+
 	return errorBundle;
 }
 
@@ -1337,6 +1348,17 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 	imwrite(a, errorSeam);
 	sprintf(a, "YO/seamMap_%d_%d.jpg", imageCodeX, imageCodeY);
 	imwrite(a, seamMap);
+
+	bothMasks.release();
+	andMasks.release();
+	noMask.release();
+	xormask2.release();
+	xormask1.release();
+	intersection.release();
+	errorGraph.release();
+	errorSeam.release();
+	seamMap.release();
+
 	return errorBundle;
 }
 
