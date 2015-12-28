@@ -143,7 +143,6 @@ void MatchTracker::applyHomography()
 	{	
 		if (images[i]->isEmpty()) continue;
 		
-		
 		warpPerspective(images[i]->getImage(), images[i]->getImage(), images[i]->getHomography(), imageSize, INTER_LINEAR, BORDER_CONSTANT);
 
 		char f[100];
@@ -172,31 +171,14 @@ void MatchTracker::generateMask()
 
 void MatchTracker::calculateTranslation()
 {
-	int dX, dY;
 	Mat H;
+	Mat transM = Mat::eye(3, 3, CV_64F);
+	transM.at<double>(0, 2) = -minX;
+	transM.at<double>(1, 2) = -minY;
 	for (int i = 0; i < size; i++)
 	{
 		H = images[i]->getHomography();
-		if (minX < 0)
-		{
-			H.row(0).col(2) = H.at<double>(0, 2) - minX / H.at<double>(0, 0);
-			//dX = -minX / H.at<double>(0, 0);
-		}
-		else if (minX >= 0)
-		{
-			H.row(0).col(2) = H.at<double>(0, 2) - minX *H.at<double>(0, 0);
-			//dX = minX * H.at<double>(0, 0);
-		}
-		if (minY < 0)
-		{
-			H.row(1).col(2) = H.at<double>(1, 2) - minY / H.at<double>(1, 1);
-			//dY = -minY / H.at<double>(1, 1);
-		}
-		else if (minY >= 0)
-		{
-			H.row(1).col(2) = H.at<double>(1, 2) - minY *H.at<double>(1, 1);
-			//dY = minY* H.at<double>(1, 1);
-		}
+		H = transM*H;
 	}
 }
 

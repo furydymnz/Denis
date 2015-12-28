@@ -15,7 +15,7 @@ public:
 
 class MatchTracker {
 public:
-	static const int pivotIndex = 0;
+	const int pivotIndex = 0;
 	vector < BaseImage *> images;
 	vector < Route > routes;
 	vector <vector <int> > pairConnection;

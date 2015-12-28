@@ -316,7 +316,8 @@ Mat findhomography(IpPairVec& matches, int reverse = 0)
 			}
 		}
 
-		Mat tempH = findHomography(targetPt, destPt, 0);
+		//Mat tempH = findHomography(targetPt, destPt, 0);
+		Mat tempH = getPerspectiveTransform(targetPt, destPt);
 
 		for(int j = 0;j < matches.size();j++){
 			bool check = false;
