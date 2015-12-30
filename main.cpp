@@ -136,6 +136,13 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	matchTracker.pixelPadding();
 	RouteHandler::findBlendingOrder(matchTracker);
 
+	printf("===========Pair Connection============\n");
+	for (int i = 0; i < imageCount; i++)
+	{
+		for (int j = 0; j < imageCount; j++)
+			printf("%2d", matchTracker.getPairConnection(i, j));
+		printf("\n");
+	}
 
 	printf("============Blending Order============\n");
 	int size = matchTracker.getBlendingOrder().size();
