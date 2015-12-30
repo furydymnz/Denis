@@ -71,6 +71,13 @@ void MatchTracker::calculatePairConnection()
 		}
 
 	}
+
+	//check and fix exception
+	for (int i = 0; i < size; i++)
+		for (int j = 0; j < size; j++)
+			if (pairConnection[i][j] == 1)
+				pairConnection[j][i] = 1;
+
 }
 
 void MatchTracker::assignHomographyToImage()
