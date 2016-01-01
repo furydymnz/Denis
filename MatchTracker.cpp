@@ -16,6 +16,9 @@ MatchTracker::MatchTracker(int size)
 	pairHomography.resize(size);
 	pairError.resize(size);
 	pairConnection.resize(size);
+	pairIntersection.resize(size);
+	pairSeam.resize(size);
+
 	for (int i = 0; i < size; i++)
 	{
 		pairNum[i].resize(size);
@@ -24,12 +27,15 @@ MatchTracker::MatchTracker(int size)
 		pairFP[i].clear();
 		pairError[i].resize(size);
 		pairConnection[i].resize(size);
+		pairIntersection[i].resize(size);
+		pairSeam[i].resize(size);
 		for (int j = 0; j < size; j++)
 		{
 			pairHomography[i][j] = Mat(3, 3, CV_64F, Scalar(-1, -1, -1));
 			pairError[i][j] = -1;
 		}
 	}
+	pivotIndex = size / 2 - 1;
 }
 
 IpPairVec& MatchTracker::getPairFP(int i, int r, int & reverse)
@@ -104,8 +110,9 @@ void MatchTracker::calculateBoundary()
 	minX = images[pivotIndex]->minX;
 	maxY = images[pivotIndex]->maxY;
 	minY = images[pivotIndex]->minY;
-	for (int i = 1; i < size; i++)
+	for (int i = 0; i < size; i++)
 	{
+		if (i == pivotIndex) continue;
 		if (images[i]->isEmpty()) continue;
 		images[i]->findBoundary();
 		if (images[i]->maxX > maxX)
@@ -150,11 +157,11 @@ void MatchTracker::applyHomography()
 	{	
 		if (images[i]->isEmpty()) continue;
 		
-		warpPerspective(images[i]->getImage(), images[i]->getImage(), images[i]->getHomography(), imageSize, INTER_LINEAR, BORDER_CONSTANT);
+		warpPerspective(images[i]->getImage(), images[i]->getImage(), images[i]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
 
-		char f[100];
-		sprintf(f, "YO/%d.jpg", i);
-		imwrite(f, images[i]->getImage());
+		//char f[100];
+		//sprintf(f, "YO/%d.jpg", i);
+		//imwrite(f, images[i]->getImage());
 	}
 }
 
@@ -167,11 +174,11 @@ void MatchTracker::generateMask()
 
 		if (images[i]->isEmpty()) continue;
 
-		warpPerspective(mask, mask, images[i]->getHomography(), imageSize, INTER_LINEAR, BORDER_CONSTANT);
+		warpPerspective(mask, mask, images[i]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
 		
-		char f[100];
-		sprintf(f, "YO/m%d.jpg", i);
-		imwrite(f, mask);
+		//char f[100];
+		//sprintf(f, "YO/m%d.jpg", i);
+		//imwrite(f, mask);
 		images[i]->assignMask(mask);
 	}
 }
@@ -229,9 +236,11 @@ void MatchTracker::calculateErrorPair()
 			if (findIntersectionPts(pt1, pt2, intersection, andMask) == -1)
 			{
 				assignErrorPair(i, r, -1);
+				assignIntersectionPair(i, r, pair<Point2i, Point2i>(Point2i(-1, -1), Point2i(-1, -1)));
 				continue;
 			}
-			
+			assignIntersectionPair(i, r, pair<Point2i, Point2i>(pt1, pt2));
+
 			if (abs(pt1.x - pt2.x) > abs(pt1.y - pt2.y))
 			{
 				printf("Horizontal\n");
@@ -244,6 +253,7 @@ void MatchTracker::calculateErrorPair()
 			}
 
 			double pathError = errorBundle.getPathError() / errorBundle.getpath().size();
+			assignSeamPair(i, r, errorBundle.getpath());
 
 			assignErrorPair(i, r, pathError);
 			intersection.release();
@@ -266,6 +276,143 @@ void MatchTracker::calculateErrorSeamTest()
 
 }
 
+Mat MatchTracker::blending()
+{
+	Mat blended;
+	int minErrorIndex;
+	double minError = DBL_MAX, tempError;
+	for (int i = 0; i < blendingOrder.size(); i++)
+	{
+		tempError = 0;
+		for (int j = 0; j < blendingOrder[i].size() - 1; j++)
+			tempError += getPairError(blendingOrder[i][j], blendingOrder[i][j + 1]);
+		if (tempError < minError)
+		{
+			minError = tempError;
+			minErrorIndex = i;
+		}
+	}
+
+	Mat orMask, andMask;
+	for (int i = 0; i < blendingOrder[minErrorIndex].size() - 1; i++)
+	{
+		pair<Point2i, Point2i> pts;
+		Mat& mask2 = getImage(blendingOrder[minErrorIndex][i + 1])->getMask();
+		Mat& mask1 = getImage(blendingOrder[minErrorIndex][i])->getMask();
+		if (i == 0) 
+		{
+			blended = getImage(blendingOrder[minErrorIndex][i])->getImage();
+
+			pts = getPairInteresection(blendingOrder[minErrorIndex][i], blendingOrder[minErrorIndex][i + 1]);
+			if (abs(pts.first.x - pts.second.x) > abs(pts.first.y - pts.second.y))
+			{
+				horizontalBlending(blended, blended, getImage(blendingOrder[minErrorIndex][i + 1])->getImage(),
+					mask1, mask2, getPairSeam(blendingOrder[minErrorIndex][i], blendingOrder[minErrorIndex][i + 1]));
+			}
+			else
+			{
+				verticalBlending(blended, blended, getImage(blendingOrder[minErrorIndex][i + 1])->getImage(),
+					mask1, mask2, getPairSeam(blendingOrder[minErrorIndex][i], blendingOrder[minErrorIndex][i + 1]));
+			}
+
+		}
+		else
+		{
+			mask1 = orMask;
+
+			andMask = mask1 & mask2;
+
+			int j = blendingOrder[minErrorIndex][i];
+			int k = blendingOrder[minErrorIndex][i + 1];
+
+			Mat intersection;
+			ErrorBundle errorBundle;
+			findIntersection(mask1, mask2, intersection);
+			Point2i pt1, pt2;
+			findIntersectionPts(pt1, pt2, intersection, andMask);
+
+			if (abs(pt1.x - pt2.x) > abs(pt1.y - pt2.y))
+			{
+				printf("Horizontal\n");
+				errorBundle = horizontalErrorMap(blended, images[k]->getImage(), mask1, mask2, j, k);
+				horizontalBlending(blended, blended, getImage(blendingOrder[minErrorIndex][i + 1])->getImage(),
+					mask1, mask2, errorBundle.getpath());
+			}
+			else
+			{
+				printf("Vertical\n");
+				errorBundle = verticalErrorMap(blended, images[k]->getImage(), mask1, mask2, j, k);
+				verticalBlending(blended, blended, getImage(blendingOrder[minErrorIndex][i + 1])->getImage(),
+					mask1, mask2, errorBundle.getpath());
+			}
+			intersection.release();
+		}
+		orMask = mask1 | mask2;
+		//orMask = orMask > 0;
+
+	}
+	orMask.release();
+	return  blended;
+}
+
+/*
+Mat MatchTracker::blending()
+{
+	Mat blended;
+	pair<int, int> minErrorIndex;
+	double minError = DBL_MAX, tempError;
+
+	//find the least error in errorPair
+	for (int i = 0; i < size - 1; i++)
+	{
+		for (int j = i + 1; j < size; j++)
+		{
+			tempError = getPairError(i, j);
+			if (tempError != -1)
+			{
+				if (tempError < minError)
+				{
+					minError = tempError;
+					minErrorIndex.first = i;
+					minErrorIndex.second = j;
+				}
+			}
+		}
+	}
+
+	Mat orMask;
+	for (int i = 0; i < blendingOrder[minErrorIndex].size() - 1; i++)
+	{
+		Mat& mask2 = getImage(blendingOrder[minErrorIndex][i + 1])->getMask();
+		Mat& mask1 = getImage(blendingOrder[minErrorIndex][i])->getMask();
+		if (i == 0)
+		{
+			blended = getImage(blendingOrder[minErrorIndex][i])->getImage();
+		}
+		else
+		{
+			mask1 = orMask;
+		}
+		orMask = mask1 | mask2;
+		orMask = orMask > 0;
+
+		pair<Point2i, Point2i> pts;
+		pts = getPairInteresection(blendingOrder[minErrorIndex][i], blendingOrder[minErrorIndex][i + 1]);
+		if (abs(pts.first.x - pts.second.x) > abs(pts.first.y - pts.second.y))
+		{
+			horizontalBlending(blended, blended, getImage(blendingOrder[minErrorIndex][i + 1])->getImage(),
+				mask1, mask2, getPairSeam(blendingOrder[minErrorIndex][i], blendingOrder[minErrorIndex][i + 1]));
+		}
+		else
+		{
+			verticalBlending(blended, blended, getImage(blendingOrder[minErrorIndex][i + 1])->getImage(),
+				mask1, mask2, getPairSeam(blendingOrder[minErrorIndex][i], blendingOrder[minErrorIndex][i + 1]));
+		}
+	}
+	orMask.release();
+	return  blended;
+}
+*/
 
 void MatchTracker::fixHomography()
 {

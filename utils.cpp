@@ -1000,15 +1000,7 @@ int findIntersectionPts(Point2i& pt1, Point2i& pt2, Mat& intersection, Mat& andM
 ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, int imageCodeX, int imageCodeY)
 {
 	ErrorBundle errorBundle;
-	cv::Mat bothMasks = mask1 | mask2;
 	cv::Mat andMasks = mask1 & mask2;
-	cv::Mat noMask = 255 - bothMasks;
-	Mat xormask2 = mask2 ^ andMasks;
-	Mat xormask1 = mask1 ^ andMasks;
-	xormask1 = xormask1 > 0;
-	xormask2 = xormask2 > 0;
-	imwrite("test/xormaks1.jpg", xormask1);
-	imwrite("test/xormaks2.jpg", xormask2);
 	Mat &errorMap = errorBundle.getErrorMap();
 	errorMap = Mat(image1.size(), CV_64FC1);
 	Mat errorGraph(image1.size(), CV_8UC1);
@@ -1101,7 +1093,7 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 				dirMap[i][j] = BOTTOM;
 			}
 	}
-
+	/*
 	//draw errorGraph
 	for (int j = pt1.x; j <= pt2.x; j++)
 	{
@@ -1127,10 +1119,10 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 	char a[100];
 	sprintf(a, "YO/errorMap_%d_%d.jpg", imageCodeX, imageCodeY);
 	imwrite(a, errorGraph);
-
-	Mat errorSeam(image1.size(), CV_8UC3);
-	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
-	cvtColor(errorGraph, errorSeam, CV_GRAY2BGR);
+	*/
+	//Mat errorSeam(image1.size(), CV_8UC3);
+	//Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
+	//cvtColor(errorGraph, errorSeam, CV_GRAY2BGR);
 
 	double minError = errorMap.at<double>(pt2.y, pt2.x);
 	Point2i startpt = pt2;
@@ -1161,23 +1153,20 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 			break;
 		}
 		seam.push_back(Point2i(x, y));
-		errorSeam.at<Vec3b>(y, x) = Vec3b(0, 0, 255);
-		seamMap.at<unsigned char>(y, x) = 255;
+		//errorSeam.at<Vec3b>(y, x) = Vec3b(0, 0, 255);
+		//seamMap.at<unsigned char>(y, x) = 255;
 	}
+	/*
 	sprintf(a, "YO/errorSeam_%d_%d.jpg", imageCodeX, imageCodeY);
 	imwrite(a, errorSeam);
 	sprintf(a, "YO/seamMap_%d_%d.jpg", imageCodeX, imageCodeY);
 	imwrite(a, seamMap);
-
-	bothMasks.release();
+	*/
 	andMasks.release();
-	noMask.release();
-	xormask2.release();
-	xormask1.release();
 	intersection.release();
 	errorGraph.release();
-	errorSeam.release();
-	seamMap.release();
+	//errorSeam.release();
+	//seamMap.release();
 
 	return errorBundle;
 }
@@ -1189,13 +1178,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 
 	//5-way DP seam finder
 	ErrorBundle errorBundle;
-	cv::Mat bothMasks = mask1 | mask2;
 	cv::Mat andMasks = mask1 & mask2;
-	cv::Mat noMask = 255 - bothMasks;
-	Mat xormask2 = mask2 ^ andMasks;
-	Mat xormask1 = mask1 ^ andMasks;
-	xormask1 = xormask1 > 0;
-	xormask2 = xormask2 > 0;
 	Mat errorMap(image1.size(), CV_64FC1);
 	Mat errorGraph(image1.size(), CV_8UC1);
 	imwrite("YO/andMask.jpg", andMasks);
@@ -1281,7 +1264,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 				dirMap[i][j] = RIGHT;
 			}
 	}
-
+	/*
 	//draw errorGraph
 	for (int i = pt1.y; i <= pt2.y; i++)
 	{
@@ -1310,7 +1293,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 	Mat errorSeam(image1.size(), CV_8UC3);
 	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
 	cvtColor(errorGraph, errorSeam, CV_GRAY2BGR);
-
+	*/
 	double minError = errorMap.at<double>(pt2.y, pt2.x);
 	Point2i startpt = pt2;
 	vector<Point2i> &seam = errorBundle.getpath();
@@ -1341,25 +1324,202 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 			break;
 		}
 		seam.push_back(Point2i(x, y));
-		errorSeam.at<Vec3b>(y, x) = Vec3b(0, 0, 255);
-		seamMap.at<unsigned char>(y, x) = 255;
+		//errorSeam.at<Vec3b>(y, x) = Vec3b(0, 0, 255);
+		//seamMap.at<unsigned char>(y, x) = 255;
 	}
-	printf("~~~%d\n", seam.size());
-	sprintf(a, "YO/errorSeam_%d_%d.jpg", imageCodeX, imageCodeY);
-	imwrite(a, errorSeam);
-	sprintf(a, "YO/seamMap_%d_%d.jpg", imageCodeX, imageCodeY);
-	imwrite(a, seamMap);
+	//printf("~~~%d\n", seam.size());
+	//sprintf(a, "YO/errorSeam_%d_%d.jpg", imageCodeX, imageCodeY);
+	//imwrite(a, errorSeam);
+	//sprintf(a, "YO/seamMap_%d_%d.jpg", imageCodeX, imageCodeY);
+	//imwrite(a, seamMap);
 
-	bothMasks.release();
 	andMasks.release();
-	noMask.release();
-	xormask2.release();
-	xormask1.release();
 	intersection.release();
 	errorGraph.release();
-	errorSeam.release();
-	seamMap.release();
+	//errorSeam.release();
+	//seamMap.release();
 
 	return errorBundle;
 }
 
+void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& mask2, vector<Point2i>& seam)
+{
+	
+	cv::Mat andMasks = mask1 & mask2;
+	Mat xormask1 = mask1 ^ andMasks;
+	Mat xormask2 = mask2 ^ andMasks;
+	xormask1 = xormask1 > 0;
+	xormask2 = xormask2 > 0;
+	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
+	for (int i = 0; i < seam.size(); i++)
+	{
+		seamMap.at<unsigned char>(seam[i]) = 255;
+	}
+	bool passedSeam;
+	bool image1Left;
+	
+	bool isSet = false;
+	for (int j = 0; j < blended.cols; j++)
+	{
+		for (int i = 0; i < blended.rows; i++)
+		{
+			if (mask1.at<unsigned char>(i, j) != 0)
+			{
+				image1Left = true;
+				isSet = true;
+				break;
+			}
+			else if (mask2.at<unsigned char>(i, j) != 0)
+			{
+				image1Left = false;
+				isSet = true;
+				break;
+			}
+		}
+		if (isSet)
+			break;
+	}
+
+	if (image1Left)
+	{
+		printf("dX>=0\n");
+		for (int i = 0; i < blended.rows; i++)
+		{
+			passedSeam = false;
+			for (int j = 0; j < blended.cols; j++)
+			{
+				if (andMasks.at<unsigned char>(i, j) == 255)
+				{
+					if (seamMap.at<unsigned char>(i, j) == 255)
+						passedSeam = true;
+					if (!passedSeam)
+						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
+					else
+						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+				}
+				else if (xormask1.at<unsigned char>(i, j) != 0)
+					blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
+				else
+					blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+
+			}
+		}
+	}
+	else
+	{
+		printf("dX<0\n");
+		for (int i = 0; i < blended.rows; i++) {
+			passedSeam = false;
+			for (int j = 0; j < blended.cols; j++) {
+				if (andMasks.at<unsigned char>(i, j) == 255)
+				{
+					if (seamMap.at<unsigned char>(i, j) == 255)
+						passedSeam = true;
+					if (!passedSeam)
+						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+					else
+						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
+				}
+				else if (xormask2.at<unsigned char>(i, j) != 0)
+					blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+				else
+					blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
+			}
+
+		}
+	}
+	andMasks.release();
+	xormask1.release();
+	xormask2.release();
+	seamMap.release();
+}
+
+void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& mask2, vector<Point2i>& seam)
+{
+	cv::Mat andMasks = mask1 & mask2;
+	Mat xormask1 = mask1 ^ andMasks;
+	Mat xormask2 = mask2 ^ andMasks;
+	xormask1 = xormask1 > 0;
+	xormask2 = xormask2 > 0;
+	andMasks = andMasks > 0;
+	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
+	for (int i = 0; i < seam.size(); i++)
+	{
+		seamMap.at<unsigned char>(seam[i]) = 255;
+	}
+
+	bool image1Above;
+	bool isSet = false;
+	for (int i = 0; i < blended.rows; i++)
+	{
+		for (int j = 0; j < blended.cols; j++)
+		{
+			if (mask1.at<unsigned char>(i, j) != 0)
+			{
+				image1Above = true;
+				isSet = true;
+				break;
+			}
+			else if (mask2.at<unsigned char>(i, j) != 0)
+			{
+				image1Above = false;
+				isSet = true;
+				break;
+			}
+		}
+		if (isSet)
+			break;
+	}
+
+	bool passedSeam;
+	if (image1Above)
+	{
+		printf("dY>=0\n");
+		for (int j = 0; j < blended.cols; j++) {
+			passedSeam = false;
+			for (int i = 0; i < blended.rows; i++) {
+				if (andMasks.at<unsigned char>(i, j) == 255)
+				{
+					if (seamMap.at<unsigned char>(i, j) == 255)
+						passedSeam = true;
+					if (!passedSeam)
+						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
+					else
+						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+				}
+				else if (xormask1.at<unsigned char>(i, j) != 0)
+					blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
+				else
+					blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+			}
+		}
+	}
+	else
+	{
+		printf("dY<0\n");
+		for (int j = 0; j < blended.cols; j++) {
+			passedSeam = false;
+			for (int i = 0; i < blended.rows; i++) {
+				if (andMasks.at<unsigned char>(i, j) == 255)
+				{
+					if (seamMap.at<unsigned char>(i, j) == 255)
+						passedSeam = true;
+					if (!passedSeam)
+						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+					else
+						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
+				}
+				else if (xormask2.at<unsigned char>(i, j) != 0)
+					blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+				else
+					blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
+			}
+
+		}
+	}
+
+	andMasks.release();
+	xormask1.release();
+	xormask2.release();
+	seamMap.release();
+}

@@ -174,6 +174,10 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	}
 	printf("\n");
 
+	printf("============Blending===========\n");
+	Mat blended = matchTracker.blending();
+	imwrite("YO/blended.jpg", blended);
+	printf("done\n");
 
 	char c;
 	scanf(" %c", &c);
