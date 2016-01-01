@@ -14,13 +14,15 @@ void Blender::blend()
 {
 	generateBlendingOrder();
 	printBlendingOrder();
-	
+	Mat mask1, mask2;
+
 	for (int i = 0; i < blendingOrder.size(); i++)
 	{
+
 		for (int j = 0; j < blendingOrder[i].size() - 1; j++)
 		{
-			Mat mask1 = matchTracker->getImage(blendingOrder[i][j])->getMask();
-			Mat mask2 = matchTracker->getImage(blendingOrder[i][j+1])->getMask();
+			mask1 = matchTracker->getImage(blendingOrder[i][j])->getMask();
+			mask2 = matchTracker->getImage(blendingOrder[i][j+1])->getMask();
 			if (j != 0)
 				mask1 = mask1 | andMask;
 
@@ -30,7 +32,8 @@ void Blender::blend()
 			findIntersection(mask1, mask2, intersection);
 			Point2i pt1, pt2;
 			if (findIntersectionPts(pt1, pt2, intersection) == -1)
-				continue;
+				break;
+
 
 			findSeam(calculateSeamDirection(pt1, pt2));
 			calculateSeamError();
