@@ -1523,3 +1523,93 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 	xormask2.release();
 	seamMap.release();
 }
+void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& mask2, vector<Point2i>& seam,
+	int minX, int minY, int maxX, int maxY)
+{
+	cv::Mat andMasks = mask1 & mask2;
+	Mat xormask1 = mask1 ^ andMasks;
+	Mat xormask2 = mask2 ^ andMasks;
+	xormask1 = xormask1 > 0;
+	xormask2 = xormask2 > 0;
+	andMasks = andMasks > 0;
+	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
+	for (int i = 0; i < seam.size(); i++)
+	{
+		seamMap.at<unsigned char>(seam[i]) = 255;
+	}
+
+	bool image1Above;
+	bool isSet = false;
+	for (int i = 0; i < blended.rows; i++)
+	{
+		for (int j = 0; j < blended.cols; j++)
+		{
+			if (mask1.at<unsigned char>(i, j) != 0)
+			{
+				image1Above = true;
+				isSet = true;
+				break;
+			}
+			else if (mask2.at<unsigned char>(i, j) != 0)
+			{
+				image1Above = false;
+				isSet = true;
+				break;
+			}
+		}
+		if (isSet)
+			break;
+	}
+
+	bool passedSeam;
+	if (image1Above)
+	{
+		printf("dY>=0\n");
+		for (int j = 0; j < blended.cols; j++) {
+			passedSeam = false;
+			for (int i = 0; i < blended.rows; i++) {
+				if (andMasks.at<unsigned char>(i, j) == 255)
+				{
+					if (seamMap.at<unsigned char>(i, j) == 255)
+						passedSeam = true;
+					if (!passedSeam)
+						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
+					else
+						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+				}
+				else if (xormask1.at<unsigned char>(i, j) != 0)
+					blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
+				else
+					blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+			}
+		}
+	}
+	else
+	{
+		printf("dY<0\n");
+		for (int j = 0; j < blended.cols; j++) {
+			passedSeam = false;
+			for (int i = 0; i < blended.rows; i++) {
+				if (andMasks.at<unsigned char>(i, j) == 255)
+				{
+					if (seamMap.at<unsigned char>(i, j) == 255)
+						passedSeam = true;
+					if (!passedSeam)
+						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+					else
+						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
+				}
+				else if (xormask2.at<unsigned char>(i, j) != 0)
+					blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+				else
+					blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
+			}
+
+		}
+	}
+
+	andMasks.release();
+	xormask1.release();
+	xormask2.release();
+	seamMap.release();
+}

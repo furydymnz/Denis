@@ -151,17 +151,12 @@ void MatchTracker::pixelPadding()
 }
 void MatchTracker::applyHomography()
 {
-	
-
 	for (int i = 0; i < size; i++)
 	{	
 		if (images[i]->isEmpty()) continue;
 		
 		warpPerspective(images[i]->getImage(), images[i]->getImage(), images[i]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
 
-		//char f[100];
-		//sprintf(f, "YO/%d.jpg", i);
-		//imwrite(f, images[i]->getImage());
 	}
 }
 
@@ -183,6 +178,8 @@ void MatchTracker::generateMask()
 	}
 }
 
+
+//!Move all the images to visible plane
 void MatchTracker::calculateTranslation()
 {
 	Mat H;

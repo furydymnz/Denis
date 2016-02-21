@@ -26,7 +26,7 @@ public:
 	Size getSize() { return image.size(); }
 
 	void findBoundary();
-	
+
 	BaseImage(IplImage *ipImage)
 	{
 		image = (Mat(ipImage, true)).clone();
