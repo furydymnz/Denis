@@ -5,9 +5,6 @@ using namespace std;
 void RouteHandler::findBlendingOrder(MatchTracker &matchTracker)
 {
 	int imageCount = matchTracker.getSize();
-
-	const float fpThreshold = 0.3;
-	const int fpBottomLimit = 10;
 	vector <int> route;
 	vector <pair<int, int> > stack;
 	vector <vector <int> > tempOrder;
@@ -173,7 +170,8 @@ void RouteHandler::findConnectingRoute(MatchTracker &matchTracker)
 	countRoutesWeight(matchTracker);
 	printf("Before:\n");
 	printRoutes(matchTracker);
-	removeRedundantRoutes(matchTracker);
+	//removeRedundantRoutes(matchTracker);
+	removeRedundantRoutes_a(matchTracker);
 	printf("After:\n");
 	printRoutes(matchTracker);
 }
@@ -212,6 +210,33 @@ void RouteHandler::removeRedundantRoutes(MatchTracker &matchTracker)
 		currentRoutes.route.push_back(route);
 		currentRoutes.routeWeightAvg.clear();
 		currentRoutes.routeWeightAvg.push_back(maxAvgWeight);
+	}
+}
+
+void RouteHandler::removeRedundantRoutes_a(MatchTracker &matchTracker)
+{
+	int imageCount = matchTracker.getSize();
+	for (int i = 0; i < imageCount; i++)
+	{
+		if (i == matchTracker.pivotIndex) continue;
+		if (matchTracker.images[i]->isEmpty()) continue;
+		int minPath = INT_MAX, minPathIndex = -1;
+		Route &currentRoutes = matchTracker.getRoute(i);
+		int routeCount = currentRoutes.route.size();
+		for (int p = 0; p < routeCount; p++)
+		{
+			if (currentRoutes.route[p].size() < minPath)
+			{
+				minPath = currentRoutes.route[p].size();
+				minPathIndex = p;
+			}
+		}
+		if (minPathIndex == -1) continue;
+		vector<int> route = currentRoutes.route[minPathIndex];
+		currentRoutes.route.clear();
+		currentRoutes.route.push_back(route);
+		currentRoutes.routeWeightAvg.clear();
+		currentRoutes.routeWeightAvg.push_back(minPathIndex);
 	}
 }
 
@@ -278,7 +303,7 @@ void RouteHandler::printRoutes(MatchTracker &matchTracker)
 void RouteHandler::calculateHomography(MatchTracker &matchTracker)
 {
 	
-	const int pivotIndex = 0;
+	int pivotIndex = matchTracker.pivotIndex;
 	vector<int> routeIndex, routeSize;
 	//sort
 	for (int i = 0; i < matchTracker.getSize(); i++)
@@ -352,4 +377,14 @@ void RouteHandler::calculateHomography(MatchTracker &matchTracker)
 		}
 		printf("\n");
 	}
+}
+
+void findBlendingOrder_a(MatchTracker &matchTracker)
+{
+	
+}
+
+void removeRedundantOrder(MatchTracker &matchTracker)
+{
+
 }
