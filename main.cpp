@@ -73,6 +73,7 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	{
 		surfDetDes(vImage[i], tempIpVec, false, 4, 4, 2, 0.0001f);
 		vIpVec.push_back(tempIpVec);
+		cvReleaseImage(&(vImage[i]));
 	}
 	printf("surfDetDes\n");
 
