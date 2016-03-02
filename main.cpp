@@ -130,8 +130,9 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	matchTracker.calculateBoundary();
 	matchTracker.printHomography();
 	matchTracker.calculateTranslation();
+
 	matchTracker.generateMask();
-	matchTracker.applyHomography();
+	//matchTracker.applyHomography();
 	
 	matchTracker.pixelPadding();
 	RouteHandler::findBlendingOrder(matchTracker);

@@ -62,6 +62,7 @@ public:
 	void calculateErrorSeamTest();
 	void calculateTranslation();
 	void pixelPadding();
+	void calculateIndividualImageBoundary();
 
 	Mat blending();
 

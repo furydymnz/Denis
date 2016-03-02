@@ -151,13 +151,7 @@ void MatchTracker::pixelPadding()
 }
 void MatchTracker::applyHomography()
 {
-	for (int i = 0; i < size; i++)
-	{	
-		if (images[i]->isEmpty()) continue;
-		
-		warpPerspective(images[i]->getImage(), images[i]->getImage(), images[i]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
-
-	}
+	warpPerspective(images[pivotIndex]->getImage(), images[pivotIndex]->getImage(), images[pivotIndex]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
 }
 
 void MatchTracker::generateMask()
@@ -168,12 +162,8 @@ void MatchTracker::generateMask()
 		Mat mask((images[i]->getImage()).size(), CV_8UC1, cv::Scalar(255));
 
 		if (images[i]->isEmpty()) continue;
-
-		warpPerspective(mask, mask, images[i]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
-		
-		//char f[100];
-		//sprintf(f, "YO/m%d.jpg", i);
-		//imwrite(f, mask);
+	//	if ( i==pivotIndex )
+		//	warpPerspective(mask, mask, images[i]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
 		images[i]->assignMask(mask);
 	}
 }
@@ -218,13 +208,19 @@ void MatchTracker::calculateErrorPair()
 	ErrorBundle errorBundle;
 	for (int i = 0; i < size - 1; i++)
 	{
+		Mat mask1;
+		warpPerspective(getImage(i)->getMask(), mask1, images[i]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+		Mat image1;
+		warpPerspective(getImage(i)->getImage(), image1, images[i]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
 		for (int r = i + 1; r < size; r++)
 		{
 			if (!getPairConnection(i, r))
 				continue;
-			Mat& mask1 = getImage(i)->getMask();
-			Mat& mask2 = getImage(r)->getMask();
-
+			
+			Mat mask2;
+			warpPerspective(getImage(r)->getMask(), mask2, images[r]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+			Mat image2;
+			warpPerspective(getImage(r)->getImage(), image2, images[r]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
 			andMask = mask1 & mask2;
 
 			Mat intersection;
@@ -241,12 +237,13 @@ void MatchTracker::calculateErrorPair()
 			if (abs(pt1.x - pt2.x) > abs(pt1.y - pt2.y))
 			{
 				printf("Horizontal\n");
-				errorBundle = horizontalErrorMap(images[i]->getImage(), images[r]->getImage(), mask1, mask2, i, r);
+				
+				errorBundle = horizontalErrorMap(image1, image2, mask1, mask2, i, r);
 			}
 			else
 			{
 				printf("Vertical\n");
-				errorBundle = verticalErrorMap(images[i]->getImage(), images[r]->getImage(), mask1, mask2, i, r);
+				errorBundle = verticalErrorMap(image1, image2, mask1, mask2, i, r);
 			}
 
 			double pathError = errorBundle.getPathError() / errorBundle.getpath().size();
@@ -254,7 +251,11 @@ void MatchTracker::calculateErrorPair()
 
 			assignErrorPair(i, r, pathError);
 			intersection.release();
+			mask2.release();
+			image2.release();
 		}
+		mask1.release();
+		image1.release();
 	}
 }
 
@@ -294,21 +295,31 @@ Mat MatchTracker::blending()
 	for (int i = 0; i < blendingOrder[minErrorIndex].size() - 1; i++)
 	{
 		pair<Point2i, Point2i> pts;
-		Mat& mask2 = getImage(blendingOrder[minErrorIndex][i + 1])->getMask();
-		Mat& mask1 = getImage(blendingOrder[minErrorIndex][i])->getMask();
+		Mat mask2;
+		warpPerspective(getImage(blendingOrder[minErrorIndex][i + 1])->getMask(), mask2, 
+			getImage(blendingOrder[minErrorIndex][i + 1])->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+		Mat mask1;
+		warpPerspective(getImage(blendingOrder[minErrorIndex][i])->getMask(), mask1,
+			getImage(blendingOrder[minErrorIndex][i])->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+		Mat image2;
+		warpPerspective(getImage(blendingOrder[minErrorIndex][i + 1])->getImage(), image2,
+			getImage(blendingOrder[minErrorIndex][i + 1])->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+		Mat image1;
+		warpPerspective(getImage(blendingOrder[minErrorIndex][i])->getImage(), image1,
+			getImage(blendingOrder[minErrorIndex][i])->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
 		if (i == 0) 
 		{
-			blended = getImage(blendingOrder[minErrorIndex][i])->getImage();
+			blended = image1;
 
 			pts = getPairInteresection(blendingOrder[minErrorIndex][i], blendingOrder[minErrorIndex][i + 1]);
 			if (abs(pts.first.x - pts.second.x) > abs(pts.first.y - pts.second.y))
 			{
-				horizontalBlending(blended, blended, getImage(blendingOrder[minErrorIndex][i + 1])->getImage(),
+				horizontalBlending(blended, blended, image2,
 					mask1, mask2, getPairSeam(blendingOrder[minErrorIndex][i], blendingOrder[minErrorIndex][i + 1]));
 			}
 			else
 			{
-				verticalBlending(blended, blended, getImage(blendingOrder[minErrorIndex][i + 1])->getImage(),
+				verticalBlending(blended, blended, image2,
 					mask1, mask2, getPairSeam(blendingOrder[minErrorIndex][i], blendingOrder[minErrorIndex][i + 1]));
 			}
 
@@ -331,25 +342,39 @@ Mat MatchTracker::blending()
 			if (abs(pt1.x - pt2.x) > abs(pt1.y - pt2.y))
 			{
 				printf("Horizontal\n");
-				errorBundle = horizontalErrorMap(blended, images[k]->getImage(), mask1, mask2, j, k);
-				horizontalBlending(blended, blended, getImage(blendingOrder[minErrorIndex][i + 1])->getImage(),
+				errorBundle = horizontalErrorMap(blended, image2, mask1, mask2, j, k);
+				horizontalBlending(blended, blended, image2,
 					mask1, mask2, errorBundle.getpath());
 			}
 			else
 			{
 				printf("Vertical\n");
-				errorBundle = verticalErrorMap(blended, images[k]->getImage(), mask1, mask2, j, k);
-				verticalBlending(blended, blended, getImage(blendingOrder[minErrorIndex][i + 1])->getImage(),
+				errorBundle = verticalErrorMap(blended, image2, mask1, mask2, j, k);
+				verticalBlending(blended, blended, image2,
 					mask1, mask2, errorBundle.getpath());
 			}
 			intersection.release();
 		}
 		orMask = mask1 | mask2;
+		mask1.release();
+		mask2.release();
+		image1.release();
+		image2.release();
 		//orMask = orMask > 0;
 
 	}
 	orMask.release();
 	return  blended;
+}
+
+void MatchTracker::calculateIndividualImageBoundary()
+{
+	printf("Boundary after projecting to the big photo\n");
+	for (int i = 0; i < size; i++)
+	{
+		images[i]->findBoundary();
+	}
+
 }
 
 /*

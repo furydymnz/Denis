@@ -1003,12 +1003,11 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 	cv::Mat andMasks = mask1 & mask2;
 	Mat &errorMap = errorBundle.getErrorMap();
 	errorMap = Mat(image1.size(), CV_64FC1);
-	Mat errorGraph(image1.size(), CV_8UC1);
 	// ------------------------------------------
 	double eTopLeft = 0, eBottomLeft = 0, eTop = 0, eLeft = 0, eBottom = 0, eCurrent;
 
 	double maxError = 0;
-	imwrite("test/andmask.jpg", andMasks);
+	//imwrite("test/andmask.jpg", andMasks);
 	Mat intersection;
 	findIntersection(mask1, mask2, intersection);
 	Point2i pt1, pt2;
@@ -1093,36 +1092,6 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 				dirMap[i][j] = BOTTOM;
 			}
 	}
-	/*
-	//draw errorGraph
-	for (int j = pt1.x; j <= pt2.x; j++)
-	{
-		for (int i = 0; i < errorMap.rows; i++)
-		{
-			if (maxError < errorMap.at<double>(i, j))
-				maxError = errorMap.at<double>(i, j);
-		}
-	}
-	double scale = 255 / maxError;
-	for (int i = 0; i < errorGraph.rows; i++)
-	{
-		for (int r = 0; r < errorGraph.cols; r++)
-		{
-			if (andMasks.at<unsigned char>(i, r) == 0)
-				continue;
-			errorGraph.at<unsigned char>(i, r) =
-				(int)((255 / maxError)*
-					errorMap.at<double>(i, r));
-
-		}
-	}
-	char a[100];
-	sprintf(a, "YO/errorMap_%d_%d.jpg", imageCodeX, imageCodeY);
-	imwrite(a, errorGraph);
-	*/
-	//Mat errorSeam(image1.size(), CV_8UC3);
-	//Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
-	//cvtColor(errorGraph, errorSeam, CV_GRAY2BGR);
 
 	double minError = errorMap.at<double>(pt2.y, pt2.x);
 	Point2i startpt = pt2;
@@ -1164,7 +1133,6 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 	*/
 	andMasks.release();
 	intersection.release();
-	errorGraph.release();
 	//errorSeam.release();
 	//seamMap.release();
 
@@ -1344,7 +1312,6 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 
 void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& mask2, vector<Point2i>& seam)
 {
-	
 	cv::Mat andMasks = mask1 & mask2;
 	Mat xormask1 = mask1 ^ andMasks;
 	Mat xormask2 = mask2 ^ andMasks;
