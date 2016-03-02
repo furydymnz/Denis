@@ -138,15 +138,11 @@ void MatchTracker::pixelPadding()
 		temp = Mat(imageSize, CV_8UC3, cv::Scalar(0, 0, 0));
 		images[i]->getImage().copyTo(temp(Rect(1, 1, images[i]->getImage().cols, images[i]->getImage().rows)));
 		images[i]->assignImage(temp);
-		//char f[100];
-		//sprintf(f, "YO/impad%d.jpg", i);
-		//imwrite(f, temp);
+		
 		temp = Mat(imageSize, CV_8UC1, cv::Scalar(0));
 		images[i]->getMask().copyTo(temp(Rect(1, 1, images[i]->getMask().cols, images[i]->getMask().rows)));
 		images[i]->assignMask(temp);
-		//images[i]->assignMask(temp);
-		//sprintf(f, "YO/impadt%d.jpg", i);
-		//imwrite(f, temp);
+		
 	}
 }
 void MatchTracker::applyHomography()
@@ -251,7 +247,12 @@ void MatchTracker::calculateErrorPair()
 
 			assignErrorPair(i, r, pathError);
 			intersection.release();
+			andMask.release();
+			image2.release();
+			mask2.release();
 		}
+		image1.release();
+		mask1.release();
 	}
 }
 
@@ -352,6 +353,12 @@ Mat MatchTracker::blending()
 			intersection.release();
 		}
 		orMask = mask1 | mask2;
+		andMask.release();
+		mask1.release();
+		mask2.release();
+		image2.release();
+		image1.release();
+
 		//orMask = orMask > 0;
 
 	}

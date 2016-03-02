@@ -389,7 +389,9 @@ void findIntersection(Mat& mask1, Mat& mask2, Mat& intersection)
 	Mat border1 = border(mask1);
 	Mat border2 = border(mask2);
 	intersection = ~(border1 | border2);
-	imwrite("test/inter.jpg", intersection);
+	
+	border1.release();
+	border2.release();
 }
 double getDPError(int i, int j, Mat &errorMap, direction **dirMap)
 {
@@ -1133,6 +1135,7 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 	*/
 	andMasks.release();
 	intersection.release();
+	errorMap.release();
 	//errorSeam.release();
 	//seamMap.release();
 
@@ -1304,6 +1307,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 	andMasks.release();
 	intersection.release();
 	errorGraph.release();
+	errorMap.release();
 	//errorSeam.release();
 	//seamMap.release();
 
