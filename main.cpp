@@ -181,6 +181,8 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	imwrite("YO/blended.jpg", blended);
 	printf("done\n");
 
+	blended.release();
+
 	char c;
 	scanf(" %c", &c);
 	cvWaitKey(0);

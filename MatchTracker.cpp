@@ -246,7 +246,9 @@ void MatchTracker::calculateErrorPair()
 			assignSeamPair(i, r, errorBundle.getpath());
 
 			assignErrorPair(i, r, pathError);
+			
 			intersection.release();
+			
 			andMask.release();
 			image2.release();
 			mask2.release();

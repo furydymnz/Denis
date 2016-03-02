@@ -247,6 +247,9 @@ cv::Mat border(cv::Mat mask)
 	cv::Mat border;
 	cv::magnitude(gx, gy, border);
 
+	gx.release();
+	gy.release();
+
 	return border <100;
 }
 double ComputeError(const cv::Mat& image1, const cv::Mat& image2, int i, int c)
@@ -389,7 +392,7 @@ void findIntersection(Mat& mask1, Mat& mask2, Mat& intersection)
 	Mat border1 = border(mask1);
 	Mat border2 = border(mask2);
 	intersection = ~(border1 | border2);
-	
+
 	border1.release();
 	border2.release();
 }
