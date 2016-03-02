@@ -251,9 +251,14 @@ void MatchTracker::calculateErrorPair()
 
 			assignErrorPair(i, r, pathError);
 			intersection.release();
+			mask2.refcount = 0;
+			image2.refcount = 0;
 			mask2.release();
 			image2.release();
+
 		}
+		mask1.refcount = 0;
+		image1.refcount = 0;
 		mask1.release();
 		image1.release();
 	}
@@ -356,6 +361,10 @@ Mat MatchTracker::blending()
 			intersection.release();
 		}
 		orMask = mask1 | mask2;
+		mask1.refcount = 0;
+		mask2.refcount = 0;
+		image1.refcount = 0;
+		image2.refcount = 0;
 		mask1.release();
 		mask2.release();
 		image1.release();
@@ -363,6 +372,7 @@ Mat MatchTracker::blending()
 		//orMask = orMask > 0;
 
 	}
+	orMask.refcount = 0;
 	orMask.release();
 	return  blended;
 }
