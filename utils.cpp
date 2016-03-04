@@ -1497,3 +1497,4 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 	xormask2.release();
 	seamMap.release();
 }
+

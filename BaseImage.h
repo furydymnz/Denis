@@ -27,11 +27,13 @@ public:
 
 	void findBoundary();
 
-	BaseImage(IplImage *ipImage)
+	BaseImage(char *imageStr)
 	{
-		image = (Mat(ipImage, true)).clone();
+		image = imread(imageStr);
 		empty = 0;
 	}
 };
+
+
 
 #endif

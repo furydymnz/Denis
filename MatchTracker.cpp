@@ -128,6 +128,7 @@ void MatchTracker::calculateBoundary()
 	printf("minX: %5d maxX: %5d minY: %5d maxY: %5d\n",
 		minX, maxX, minY, maxY);
 }
+
 void MatchTracker::pixelPadding()
 {
 	Mat temp;
@@ -138,13 +139,16 @@ void MatchTracker::pixelPadding()
 		temp = Mat(imageSize, CV_8UC3, cv::Scalar(0, 0, 0));
 		images[i]->getImage().copyTo(temp(Rect(1, 1, images[i]->getImage().cols, images[i]->getImage().rows)));
 		images[i]->assignImage(temp);
-		
+
 		temp = Mat(imageSize, CV_8UC1, cv::Scalar(0));
 		images[i]->getMask().copyTo(temp(Rect(1, 1, images[i]->getMask().cols, images[i]->getMask().rows)));
 		images[i]->assignMask(temp);
-		
 	}
 }
+
+
+
+
 void MatchTracker::applyHomography()
 {
 	warpPerspective(images[pivotIndex]->getImage(), images[pivotIndex]->getImage(), images[pivotIndex]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);

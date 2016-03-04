@@ -43,7 +43,7 @@ using namespace cv;
 
 int mainStaticStitching(int imageCount, char *imageStr[]){
 	vector <IplImage * > vImage;
-
+	vector <char * > vString;
 	IplImage *tempImage;
 
 	//Load images
@@ -54,6 +54,7 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 		{
 			vImage.push_back(tempImage);
 			printf("%s\n", imageStr[i]);
+			vString.push_back(imageStr[i]);
 		}
 		else
 			printf("%s can not be loaded!\n", imageStr[i]);
@@ -62,9 +63,10 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	if (imageCount <= 1) return -1;
 
 	MatchTracker matchTracker(imageCount);
+
 	for (int i = 0; i < vImage.size(); i++)
 	{
-		matchTracker.pushImage(new BaseImage(vImage[i]));
+		matchTracker.pushImage(new BaseImage(vString[i]));
 	}
 	//Find surf descriptions
 	IpVec tempIpVec;
@@ -129,13 +131,16 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	
 	matchTracker.assignHomographyToImage();
 	matchTracker.calculateBoundary();
-	matchTracker.printHomography();
+	//matchTracker.printHomography();
 	matchTracker.calculateTranslation();
 
+	printf("===========generateMask============\n");
 	matchTracker.generateMask();
 	//matchTracker.applyHomography();
 	
+	printf("===========pixelPadding============\n");
 	matchTracker.pixelPadding();
+	printf("===========findBlendingOrder============\n");
 	RouteHandler::findBlendingOrder(matchTracker);
 
 	printf("===========Pair Connection============\n");
