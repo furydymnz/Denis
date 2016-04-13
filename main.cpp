@@ -15,6 +15,7 @@
 #include "MatchTracker.h"
 #include "BaseImage.h"
 #include "Blender.h"
+#include "time.h"
 #include <ctime>
 #include <iostream>
 #include <vector>
@@ -46,7 +47,12 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	vector <char * > vString;
 	IplImage *tempImage;
 
+	clock_t start, stop;
+	clock_t tstart, tstop;
+
 	//Load images
+	tstart = clock();
+	start = clock();
 	for(int i=1 ; i<imageCount ; i++)
 	{
 		tempImage = cvLoadImage(imageStr[i]);
@@ -61,6 +67,10 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	}
 	imageCount = vImage.size();
 	if (imageCount <= 1) return -1;
+	stop = clock();
+	printf("Time of LoadImages is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
+
+	start = clock();
 
 	MatchTracker matchTracker(imageCount);
 
@@ -79,6 +89,11 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	}
 	printf("surfDetDes\n");
 
+	stop = clock();
+	printf("Time of Surf is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
+
+	start = clock();
+
 	//Find match
 	IpPairVec tempMatch, bestMatch;
 	int iBestMatch;
@@ -95,6 +110,9 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 		}
 	}
 
+	stop = clock();
+	printf("Time of getMatches is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
+
 	printf("\n");
 	for (int i = 0; i < imageCount; i++)
 	{
@@ -107,9 +125,20 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	}
 	printf("\n");
 
+	start = clock();
 	matchTracker.calculatePairConnection();
+	stop = clock();
+	printf("Time of calculatePairConnection is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
+
+	start = clock();
 	RouteHandler::findConnectingRoute(matchTracker);
+	stop = clock();
+	printf("Time of findConnectingRoute is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
+
+	start = clock();
 	RouteHandler::calculateHomography(matchTracker);
+	stop = clock();
+	printf("Time of calculateHomography is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
 
 	for (int r = 0; r < 3; r++)
 	{
@@ -129,19 +158,40 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 		printf("\n");
 	}
 	
+	start = clock();
 	matchTracker.assignHomographyToImage();
+	stop = clock();
+	printf("Time of assignHomographyToImage is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
+	
+	start = clock();
 	matchTracker.calculateBoundary();
+	stop = clock();
+	printf("Time of calculateBoundary is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
+
 	//matchTracker.printHomography();
+	start = clock();
 	matchTracker.calculateTranslation();
+	stop = clock();
+	printf("Time of calculateTranslation is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
 
 	printf("===========generateMask============\n");
+	start = clock();
 	matchTracker.generateMask();
+	stop = clock();
+	printf("Time of generateMask is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
 	//matchTracker.applyHomography();
 	
 	printf("===========pixelPadding============\n");
+	start = clock();
 	matchTracker.pixelPadding();
+	stop = clock();
+	printf("Time of pixelPadding is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
+
 	printf("===========findBlendingOrder============\n");
+	start = clock();
 	RouteHandler::findBlendingOrder(matchTracker);
+	stop = clock();
+	printf("Time of findBlendingOrder is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
 
 	printf("===========Pair Connection============\n");
 	for (int i = 0; i < imageCount; i++)
@@ -166,7 +216,10 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	blender.printBlendingOrder();
 	*/
 
+	start = clock();
 	matchTracker.calculateErrorPair();
+	stop = clock();
+	printf("Time of calculateErrorPair is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
 
 
 	printf("=============PairError=========\n");
@@ -182,11 +235,17 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	printf("\n");
 
 	printf("============Blending===========\n");
+	start = clock();
 	Mat blended = matchTracker.blending();
 	imwrite("YO/blended.jpg", blended);
 	printf("done\n");
+	stop = clock();
+	printf("Time of blending is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
 
 	blended.release();
+	
+	tstop = clock();
+	printf("Total Time of blending is: %lf seconds\n", double(tstop - tstart) / CLOCKS_PER_SEC);
 
 	char c;
 	scanf(" %c", &c);
