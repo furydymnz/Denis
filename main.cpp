@@ -33,7 +33,7 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	Mat tempImage;
 
 	double scale = 1.0;
-	static int maxBorder = 500;
+	static int maxBorder = 5000;
 
 	clock_t start, stop;
 	clock_t tstart, tstop;
@@ -92,7 +92,7 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	//Find surf descriptions
 	vector<Mat> descriptorsList;
 	vector<vector<Point2f> > arraysOfKeyPoints;
-	int minHessian = 400;
+	int minHessian = 100;
 
 	SurfFeatureDetector detector(minHessian);
 	SurfDescriptorExtractor extractor;

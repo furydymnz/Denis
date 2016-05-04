@@ -1020,28 +1020,58 @@ int findIntersectionPts(Point2i& pt1, Point2i& pt2, Mat& intersection, Mat& andM
 	return 0;
 }
 
-ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, int imageCodeX, int imageCodeY)
+ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, double scale, int imageCodeX, int imageCodeY)
 {
 	ErrorBundle errorBundle;
 	cv::Mat andMasks = mask1 & mask2;
-	Mat &errorMap = errorBundle.getErrorMap();
-	errorMap = Mat(image1.size(), CV_64FC1);
+	Mat errorMap;
 	// ------------------------------------------
 	double eTopLeft = 0, eBottomLeft = 0, eTop = 0, eLeft = 0, eBottom = 0, eCurrent;
 
 	double maxError = 0;
-	//imwrite("test/andmask.jpg", andMasks);
+
 	Mat intersection;
 	findIntersection(mask1, mask2, intersection);
 	Point2i pt1, pt2;
 	findIntersectionPts(pt1, pt2, intersection, andMasks);
 
+	Point hd_pt1(pt1.x, pt1.y);
+	Point hd_pt2(pt2.x, pt2.y);
+
+	Mat tempMask1;
+	Mat tempMask2;
+	Mat tempImage1;
+	Mat tempImage2;
+	if (scale != 1.0)
+	{
+		resize(mask1, tempMask1, Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(mask2, tempMask2, Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(image1, tempImage1, Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(image2, tempImage2, Size(0, 0), scale, scale, INTER_LINEAR);
+
+		andMasks = tempMask1 & tempMask2;
+		findIntersection(tempMask1, tempMask2, intersection);
+		findIntersectionPts(pt1, pt2, intersection, andMasks);
+
+		errorMap = Mat(tempImage1.size(), CV_64FC1);
+	}
+	else
+		errorMap = Mat(image1.size(), CV_64FC1);
+
+	errorBundle.setErrorMap(errorMap);
+	
 	//let pt1 be the leftmost point
 	Point2i temp;
 	if (pt1.x > pt2.x) {
 		temp = pt1;
 		pt1 = pt2;
 		pt2 = temp;
+	}
+
+	if (hd_pt1.x > hd_pt2.x) {
+		temp = hd_pt1;
+		hd_pt1 = hd_pt2;
+		hd_pt2 = temp;
 	}
 
 
@@ -1148,6 +1178,11 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 		//errorSeam.at<Vec3b>(y, x) = Vec3b(0, 0, 255);
 		//seamMap.at<unsigned char>(y, x) = 255;
 	}
+
+	if (scale != 1.0)
+	{
+		fixSeam(seam, hd_pt1, hd_pt2, scale);
+	}
 	/*
 	sprintf(a, "YO/errorSeam_%d_%d.jpg", imageCodeX, imageCodeY);
 	imwrite(a, errorSeam);
@@ -1171,7 +1206,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 	//5-way DP seam finder
 	ErrorBundle errorBundle;
 	cv::Mat andMasks = mask1 & mask2;
-	Mat errorMap(image1.size(), CV_64FC1);
+	Mat errorMap;
 	Mat errorGraph(image1.size(), CV_8UC1);
 
 	// ------------------------------------------
@@ -1201,10 +1236,10 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 		findIntersection(tempMask1, tempMask2, intersection);
 		findIntersectionPts(pt1, pt2, intersection, andMasks);
 
-		Mat errorMap(tempImage1.size(), CV_64FC1);
+		errorMap = Mat(tempImage1.size(), CV_64FC1);
 	}
 	else
-		Mat errorMap(image1.size(), CV_64FC1);
+		errorMap = Mat(image1.size(), CV_64FC1);
 
 	errorBundle.setErrorMap(errorMap);
 
@@ -1214,6 +1249,12 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 		temp = pt1;
 		pt1 = pt2;
 		pt2 = temp;
+	}
+
+	if (hd_pt1.y > hd_pt2.y) {
+		temp = hd_pt1;
+		hd_pt1 = hd_pt2;
+		hd_pt2 = temp;
 	}
 
 	//DP
@@ -1346,7 +1387,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 	}
 	if (scale != 1.0)
 	{
-		fixVerticalSeam(seam, hd_pt1, hd_pt2, scale);
+		fixSeam(seam, hd_pt1, hd_pt2, scale);
 	}
 	//printf("~~~%d\n", seam.size());
 	//sprintf(a, "YO/errorSeam_%d_%d.jpg", imageCodeX, imageCodeY);
@@ -1364,7 +1405,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 	return errorBundle;
 }
 
-void fixVerticalSeam(vector<Point2i> &seam, Point pt1, Point pt2, double scale)
+void fixSeam(vector<Point2i> &seam, Point pt1, Point pt2, double scale)
 {
 	vector<Point2i> fixedSeam;
 	Point currentPoint(seam[0].x / scale, seam[0].y / scale);

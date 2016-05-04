@@ -60,7 +60,6 @@ public:
 	void generateMask();
 	void printHomography();
 	void calculateErrorPair();
-	void calculateErrorSeamTest();
 	void calculateTranslation();
 	void pixelPadding();
 	void calculateIndividualImageBoundary();

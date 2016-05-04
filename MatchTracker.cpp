@@ -239,7 +239,7 @@ void MatchTracker::calculateErrorPair()
 			{
 				printf("Horizontal\n");
 				
-				errorBundle = horizontalErrorMap(image1, image2, mask1, mask2, i, r);
+				errorBundle = horizontalErrorMap(image1, image2, mask1, mask2, scale, i, r);
 			}
 			else
 			{
@@ -263,20 +263,6 @@ void MatchTracker::calculateErrorPair()
 	}
 }
 
-void MatchTracker::calculateErrorSeamTest()
-{
-	ErrorBundle errorBundle;
-	const float fpThreshold = 0.3;
-	const int fpBottomLimit = 10;
-	for (int i = 0; i < size-1; i++)
-	{
-		for (int j = i + 1; j < size; j++)
-		{
-			
-		}
-	}
-
-}
 
 Mat MatchTracker::blending()
 {
@@ -298,7 +284,6 @@ Mat MatchTracker::blending()
 	Mat orMask, andMask;
 	for (int i = 0; i < blendingOrder[minErrorIndex].size() - 1; i++)
 	{
-		printf("here~~");
 		pair<Point2i, Point2i> pts;
 		Mat mask2;
 		warpPerspective(getImage(blendingOrder[minErrorIndex][i + 1])->getMask(), mask2, 
@@ -348,7 +333,7 @@ Mat MatchTracker::blending()
 			if (abs(pt1.x - pt2.x) > abs(pt1.y - pt2.y))
 			{
 				printf("Horizontal\n");
-				errorBundle = horizontalErrorMap(blended, image2, mask1, mask2, j, k);
+				errorBundle = horizontalErrorMap(blended, image2, mask1, mask2, scale, j, k);
 				horizontalBlending(blended, blended, image2,
 					mask1, mask2, errorBundle.getpath());
 			}
