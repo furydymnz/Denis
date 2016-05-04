@@ -127,6 +127,24 @@ void drawPoints(IplImage *img, vector<Ipoint> &ipts)
   }
 }
 
+//! Draw features on the image
+void drawPoints(Mat &image, vector<Ipoint> &ipts)
+{
+	float s, o;
+	int r1, c1;
+
+	for (unsigned int i = 0; i < ipts.size(); i++)
+	{
+		s = 3;
+		o = ipts[i].orientation;
+		r1 = fRound(ipts[i].y);
+		c1 = fRound(ipts[i].x);
+
+		circle(image, Point2i(c1, r1), s, COLOURS[ipts[i].clusterIndex%NCOLOURS], -1);
+		circle(image, Point2i(c1, r1), s+1, COLOURS[ipts[i].clusterIndex%NCOLOURS], 2);
+	}
+}
+
 //-------------------------------------------------------
 
 

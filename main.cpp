@@ -88,6 +88,14 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 		cvReleaseImage(&(vImage[i]));
 	}
 	printf("surfDetDes\n");
+	/*
+	for (int i = 0; i < imageCount; i++) {
+		Mat image = (*matchTracker.getImage(i)).getImage();
+		drawPoints(image, vIpVec[i]);
+		char file[100];
+		sprintf(file, "image%i.jpg", i);
+		imwrite(file, image);
+	}*/
 
 	stop = clock();
 	printf("Time of Surf is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
@@ -237,6 +245,10 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	printf("============Blending===========\n");
 	start = clock();
 	Mat blended = matchTracker.blending();
+	/*vector<Point2i>seam = matchTracker.getPairSeam(0, 1);
+	for (int i = 0; i < seam.size(); i++) {
+		printf("%d %d\n", seam[i].x, seam[i].y);
+	}*/
 	imwrite("YO/blended.jpg", blended);
 	printf("done\n");
 	stop = clock();
