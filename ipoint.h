@@ -41,6 +41,12 @@ public:
 	//! Constructor
 	Ipoint() : orientation(0) {};
 
+	Ipoint(int x, int y) {
+		this->x = x;
+		this->y = y;
+		orientation = 0;
+	};
+
 	//! Gets the distance in descriptor space between Ipoints
 	float operator-(const Ipoint &rhs)
 	{
