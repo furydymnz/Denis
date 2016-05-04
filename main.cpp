@@ -33,7 +33,7 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	Mat tempImage;
 
 	double scale = 1.0;
-	static int maxBorder = 50000;
+	static int maxBorder = 500;
 
 	clock_t start, stop;
 	clock_t tstart, tstop;
@@ -82,7 +82,7 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	
 	start = clock();
 
-	MatchTracker matchTracker(imageCount);
+	MatchTracker matchTracker(imageCount, scale);
 
 	for (int i = 0; i < vImage.size(); i++)
 	{

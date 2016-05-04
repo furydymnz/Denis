@@ -416,7 +416,7 @@ void findIntersection(Mat& mask1, Mat& mask2, Mat& intersection)
 }
 double getDPError(int i, int j, Mat &errorMap, direction **dirMap)
 {
-	if (i < 0 || j < 0 || j > errorMap.cols || i > errorMap.rows || dirMap[i][j] == YO)
+	if (i < 0 || j < 0 || j >= errorMap.cols || i >= errorMap.rows || dirMap[i][j] == YO)
 		return -1;
 	return errorMap.at<double>(i, j);
 }
@@ -1163,7 +1163,7 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 	return errorBundle;
 }
 
-ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, int imageCodeX, int imageCodeY)
+ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, double scale, int imageCodeX, int imageCodeY)
 {
 	// edited: find regions where no mask is set
 	// compute the region where no mask is set at all, to use those color values unblended
@@ -1173,7 +1173,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 	cv::Mat andMasks = mask1 & mask2;
 	Mat errorMap(image1.size(), CV_64FC1);
 	Mat errorGraph(image1.size(), CV_8UC1);
-	imwrite("YO/andMask.jpg", andMasks);
+
 	// ------------------------------------------
 	double eTopLeft = 0, eTopRight = 0, eTop = 0, eLeft = 0, eRight = 0, eCurrent;
 
@@ -1182,6 +1182,31 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 	findIntersection(mask1, mask2, intersection);
 	Point2i pt1, pt2;
 	findIntersectionPts(pt1, pt2, intersection, andMasks);
+
+	Point hd_pt1(pt1.x, pt1.y);
+	Point hd_pt2(pt2.x, pt2.y);
+
+	Mat tempMask1;
+	Mat tempMask2;
+	Mat tempImage1;
+	Mat tempImage2;
+	if (scale != 1.0)
+	{
+		resize(mask1, tempMask1, Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(mask2, tempMask2, Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(image1, tempImage1, Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(image2, tempImage2, Size(0, 0), scale, scale, INTER_LINEAR);
+
+		andMasks = tempMask1 & tempMask2;
+		findIntersection(tempMask1, tempMask2, intersection);
+		findIntersectionPts(pt1, pt2, intersection, andMasks);
+
+		Mat errorMap(tempImage1.size(), CV_64FC1);
+	}
+	else
+		Mat errorMap(image1.size(), CV_64FC1);
+
+	errorBundle.setErrorMap(errorMap);
 
 	//let pt1 be the leftmost point
 	Point2i temp;
@@ -1319,6 +1344,10 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 		//errorSeam.at<Vec3b>(y, x) = Vec3b(0, 0, 255);
 		//seamMap.at<unsigned char>(y, x) = 255;
 	}
+	if (scale != 1.0)
+	{
+		fixVerticalSeam(seam, hd_pt1, hd_pt2, scale);
+	}
 	//printf("~~~%d\n", seam.size());
 	//sprintf(a, "YO/errorSeam_%d_%d.jpg", imageCodeX, imageCodeY);
 	//imwrite(a, errorSeam);
@@ -1333,6 +1362,77 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 	//seamMap.release();
 
 	return errorBundle;
+}
+
+void fixVerticalSeam(vector<Point2i> &seam, Point pt1, Point pt2, double scale)
+{
+	vector<Point2i> fixedSeam;
+	Point currentPoint(seam[0].x / scale, seam[0].y / scale);
+	Point nextPoint(seam[1].x / scale, seam[1].y / scale);
+	int dx, dy, index = 1;
+
+	fixedSeam.push_back(currentPoint);
+	while (index < seam.size())
+	{
+		dx = (int)ceil(nextPoint.x - currentPoint.x);
+		dy = (int)ceil(nextPoint.y - currentPoint.y);
+
+		while (dx != 0 || dy != 0)
+		{
+			if (dx < 0) {
+				currentPoint.x--;
+				dx++;
+			}
+			else if (dx>0) {
+				currentPoint.x++;
+				dx--;
+			}
+			if (dy < 0) {
+				currentPoint.y--;
+				dy++;
+			}
+			else if (dy>0) {
+				currentPoint.y++;
+				dy--;
+			}
+			fixedSeam.push_back(currentPoint);
+		}
+		if (++index >= seam.size())
+			break;
+		nextPoint = Point(seam[index].x / scale, seam[index].y / scale);
+	}
+
+	dx = (int)ceil(pt1.x - currentPoint.x);
+	dy = (int)ceil(pt1.y - currentPoint.y);
+
+	while (dx != 0 || dy != 0)
+	{
+		if (dx < 0) {
+			currentPoint.x--;
+			dx++;
+		}
+		else if (dx>0) {
+			currentPoint.x++;
+			dx--;
+		}
+		if (dy < 0) {
+			currentPoint.y--;
+			dy++;
+		}
+		else if (dy>0) {
+			currentPoint.y++;
+			dy--;
+		}
+		fixedSeam.push_back(currentPoint);
+	}
+	printf("-------------WHAT-------------\n");
+	printf("pt1: %d %d\n", pt1.x, pt1.y);
+	printf("pt2: %d %d\n", pt2.x, pt2.y);
+
+	seam.clear();
+	for (int i = 0; i < fixedSeam.size(); i++){
+		seam.push_back(fixedSeam[i]);
+	}
 }
 
 void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& mask2, vector<Point2i>& seam)

@@ -28,9 +28,10 @@ public:
 	vector < vector < vector<Point2i> > >pairSeam;
 
 	int maxX, maxY, minX, minY;
+	double scale;
 	int size;
 	Size imageSize;
-	MatchTracker(int size);
+	MatchTracker(int size, double scale);
 
 	void assignFPNum(int i, int r, int fp) { pairNum[i][r] = fp; pairNum[r][i] = fp; }
 	void assignErrorPair(int i, int r, double err) { pairError[i][r] = err; pairError[r][i] = err; }

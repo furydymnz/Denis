@@ -6,9 +6,10 @@
 #include "opencv2/calib3d/calib3d.hpp"
 
 
-MatchTracker::MatchTracker(int size)
+MatchTracker::MatchTracker(int size, double scale)
 {
 	this->size = size;
+	this->scale = scale;
 	pairNum.resize(size);
 	pairFP.resize(size);
 	routes.resize(size);
@@ -243,7 +244,7 @@ void MatchTracker::calculateErrorPair()
 			else
 			{
 				printf("Vertical\n");
-				errorBundle = verticalErrorMap(image1, image2, mask1, mask2, i, r);
+				errorBundle = verticalErrorMap(image1, image2, mask1, mask2, scale, i, r);
 			}
 
 			double pathError = errorBundle.getPathError() / errorBundle.getpath().size();
@@ -293,10 +294,11 @@ Mat MatchTracker::blending()
 			minErrorIndex = i;
 		}
 	}
-
+	
 	Mat orMask, andMask;
 	for (int i = 0; i < blendingOrder[minErrorIndex].size() - 1; i++)
 	{
+		printf("here~~");
 		pair<Point2i, Point2i> pts;
 		Mat mask2;
 		warpPerspective(getImage(blendingOrder[minErrorIndex][i + 1])->getMask(), mask2, 
@@ -310,9 +312,10 @@ Mat MatchTracker::blending()
 		Mat image1;
 		warpPerspective(getImage(blendingOrder[minErrorIndex][i])->getImage(), image1,
 			getImage(blendingOrder[minErrorIndex][i])->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+		
 		if (i == 0) 
 		{
-			blended = image1;
+			blended = image1.clone();
 
 			pts = getPairInteresection(blendingOrder[minErrorIndex][i], blendingOrder[minErrorIndex][i + 1]);
 			if (abs(pts.first.x - pts.second.x) > abs(pts.first.y - pts.second.y))
@@ -352,7 +355,7 @@ Mat MatchTracker::blending()
 			else
 			{
 				printf("Vertical\n");
-				errorBundle = verticalErrorMap(blended, image2, mask1, mask2, j, k);
+				errorBundle = verticalErrorMap(blended, image2, mask1, mask2, scale, j, k);
 				verticalBlending(blended, blended, image2,
 					mask1, mask2, errorBundle.getpath());
 			}
