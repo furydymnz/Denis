@@ -488,15 +488,15 @@ Mat verticalBlending(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2)
 	Mat xormask1 = mask1 ^ andMasks;
 	xormask1 = xormask1 > 0;
 	xormask2 = xormask2 > 0;
-	imwrite("test/xormaks1.jpg",xormask1);
-	imwrite("test/xormaks2.jpg",xormask2);
+	//imwrite("test/xormaks1.jpg",xormask1);
+	//imwrite("test/xormaks2.jpg",xormask2);
 	Mat errorMap(image1.size(), CV_64FC1);
 	Mat errorGraph(image1.size(), CV_8UC1);
 	// ------------------------------------------
 	double eTopLeft = 0, eTopRight = 0, eTop = 0, eLeft = 0, eRight = 0, eCurrent;
 	
 	double maxError = 0;
-	imwrite("test/andmask.jpg", andMasks);
+	//imwrite("test/andmask.jpg", andMasks);
 	Mat intersection;
 	findIntersection(mask1,mask2,intersection);
 	Point2i pt1, pt2;
@@ -1183,11 +1183,13 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 	{
 		fixSeam(seam, hd_pt1, hd_pt2, scale);
 	}
+
+	char a[100];
 	/*
 	sprintf(a, "YO/errorSeam_%d_%d.jpg", imageCodeX, imageCodeY);
-	imwrite(a, errorSeam);
+	imwrite(a, seam);
 	sprintf(a, "YO/seamMap_%d_%d.jpg", imageCodeX, imageCodeY);
-	imwrite(a, seamMap);
+	imwrite(a, errorMap);
 	*/
 	andMasks.release();
 	intersection.release();
@@ -1408,9 +1410,12 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 void fixSeam(vector<Point2i> &seam, Point pt1, Point pt2, double scale)
 {
 	vector<Point2i> fixedSeam;
-	Point currentPoint(seam[0].x / scale, seam[0].y / scale);
-	Point nextPoint(seam[1].x / scale, seam[1].y / scale);
+	Point currentPoint(pt1.x, pt1.y);
+	Point nextPoint(seam[0].x / scale, seam[0].y / scale);
 	int dx, dy, index = 1;
+
+	dx = (int)ceil(pt1.x - currentPoint.x);
+	dy = (int)ceil(pt1.y - currentPoint.y);
 
 	fixedSeam.push_back(currentPoint);
 	while (index < seam.size())
@@ -1478,12 +1483,17 @@ void fixSeam(vector<Point2i> &seam, Point pt1, Point pt2, double scale)
 
 void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& mask2, vector<Point2i>& seam)
 {
+	//TODO seam walking on the edge of andmask
 	cv::Mat andMasks = mask1 & mask2;
 	Mat xormask1 = mask1 ^ andMasks;
 	Mat xormask2 = mask2 ^ andMasks;
 	xormask1 = xormask1 > 0;
 	xormask2 = xormask2 > 0;
 	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
+
+	image1.copyTo(blended, xormask1);
+	image2.copyTo(blended, xormask2);
+
 	for (int i = 0; i < seam.size(); i++)
 	{
 		seamMap.at<unsigned char>(seam[i]) = 255;
@@ -1530,11 +1540,6 @@ void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& m
 					else
 						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
 				}
-				else if (xormask1.at<unsigned char>(i, j) != 0)
-					blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
-				else
-					blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
-
 			}
 		}
 	}
@@ -1553,10 +1558,6 @@ void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& m
 					else
 						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
 				}
-				else if (xormask2.at<unsigned char>(i, j) != 0)
-					blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
-				else
-					blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
 			}
 
 		}
@@ -1569,6 +1570,8 @@ void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& m
 
 void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& mask2, vector<Point2i>& seam)
 {
+	//TODO seam walking on the edge of andmask
+
 	cv::Mat andMasks = mask1 & mask2;
 	Mat xormask1 = mask1 ^ andMasks;
 	Mat xormask2 = mask2 ^ andMasks;
@@ -1576,10 +1579,23 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 	xormask2 = xormask2 > 0;
 	andMasks = andMasks > 0;
 	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
+
+	image1.copyTo(blended, xormask1);
+	image2.copyTo(blended, xormask2);
+
+	for (int i = 0; i < seam.size(); i++)
+		printf("%d %d,", seam[i].x, seam[i].y);
+
 	for (int i = 0; i < seam.size(); i++)
 	{
+	
 		seamMap.at<unsigned char>(seam[i]) = 255;
 	}
+
+	static int picId = 0;
+	char a[100];
+	sprintf(a, "seamMap%d.jpg", picId++);
+	imwrite(a, seamMap);
 
 	bool image1Above;
 	bool isSet = false;
@@ -1603,7 +1619,8 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 		if (isSet)
 			break;
 	}
-
+	Mat temp(Size(1, 1), CV_8UC3, Scalar(0, 255, 0));
+	Mat tempR(Size(1, 1), CV_8UC3, Scalar(0, 0, 255));
 	bool passedSeam;
 	if (image1Above)
 	{
@@ -1615,20 +1632,26 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 				{
 					if (seamMap.at<unsigned char>(i, j) == 255)
 						passedSeam = true;
+
 					if (!passedSeam)
 						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
+						//blended.at<Vec3b>(i, j) = temp.at<Vec3b>(0, 0);
 					else
 						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+						//blended.at<Vec3b>(i, j) = temp.at<Vec3b>(0, 0);
 				}
-				else if (xormask1.at<unsigned char>(i, j) != 0)
+				/*
+				else if ((int)xormask1.at<unsigned char>(i, j) != 0)
 					blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
-				else
+				 else
 					blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+					*/
 			}
 		}
 	}
 	else
 	{
+		bool tempsss = false, done = false;
 		printf("dY<0\n");
 		for (int j = 0; j < blended.cols; j++) {
 			passedSeam = false;
@@ -1639,15 +1662,22 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 						passedSeam = true;
 					if (!passedSeam)
 						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+						//blended.at<Vec3b>(i, j) = temp.at<Vec3b>(0, 0);
 					else
 						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
+						//blended.at<Vec3b>(i, j) = temp.at<Vec3b>(0, 0);
 				}
-				else if (xormask2.at<unsigned char>(i, j) != 0)
-					blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
-				else
-					blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
-			}
 
+			}
+			if (passedSeam)
+				tempsss = true;
+			if (tempsss && !passedSeam && !done)
+			{
+				done = true;
+				printf("ERRORRRRRRRRRRRR %d \n", j);
+				for (int i = 0; i < blended.rows; i++)
+					printf("%u,", seamMap.at<unsigned char>(i, j));
+			}
 		}
 	}
 

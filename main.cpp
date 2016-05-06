@@ -33,11 +33,11 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	Mat tempImage;
 
 	double scale = 1.0;
-	static int maxBorder = 5000;
+	const int maxBorder = 1000;
+	const double minScale = 0.3;
 
 	clock_t start, stop;
 	clock_t tstart, tstop;
-
 
 	//Load images
 	tstart = clock();
@@ -58,8 +58,8 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 				if ((tempImage.size().height) > maxBorder)
 					scale = (double)maxBorder / (tempImage.size().height);
 			}
-			if (scale<0.3)
-				scale = 0.3;
+			if (scale<minScale)
+				scale = minScale;
 		}
 		printf("scale: %lf\n",scale);
 		if (scale != 1.0)
