@@ -92,7 +92,7 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	//Find surf descriptions
 	vector<Mat> descriptorsList;
 	vector<vector<Point2f> > arraysOfKeyPoints;
-	int minHessian = 100;
+	int minHessian = 400;
 
 	SurfFeatureDetector detector(minHessian);
 	SurfDescriptorExtractor extractor;

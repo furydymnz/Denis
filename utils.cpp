@@ -1037,6 +1037,7 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 
 	Point hd_pt1(pt1.x, pt1.y);
 	Point hd_pt2(pt2.x, pt2.y);
+	Mat hd_andMask;
 
 	Mat tempMask1;
 	Mat tempMask2;
@@ -1052,6 +1053,8 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 		andMasks = tempMask1 & tempMask2;
 		findIntersection(tempMask1, tempMask2, intersection);
 		findIntersectionPts(pt1, pt2, intersection, andMasks);
+
+		hd_andMask = mask1 & mask2;
 
 		errorMap = Mat(tempImage1.size(), CV_64FC1);
 	}
@@ -1179,9 +1182,16 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 		//seamMap.at<unsigned char>(y, x) = 255;
 	}
 
+	Mat tempMat(errorMap.size(), CV_8UC1, Scalar(0));
+	for (int i = 0; i < seam.size(); i++) {
+		tempMat.at<unsigned char>(seam[i]) = 255;
+	}
+
+	imwrite("YO/seamMap.jpg", tempMat);
+	
 	if (scale != 1.0)
 	{
-		fixSeam(seam, hd_pt1, hd_pt2, scale);
+		fixSeam(seam, hd_pt1, hd_pt2, scale, hd_andMask);
 	}
 
 	char a[100];
@@ -1222,6 +1232,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 
 	Point hd_pt1(pt1.x, pt1.y);
 	Point hd_pt2(pt2.x, pt2.y);
+	Mat hd_andMask;
 
 	Mat tempMask1;
 	Mat tempMask2;
@@ -1239,6 +1250,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 		findIntersectionPts(pt1, pt2, intersection, andMasks);
 
 		errorMap = Mat(tempImage1.size(), CV_64FC1);
+		hd_andMask = mask1 & mask2;
 	}
 	else
 		errorMap = Mat(image1.size(), CV_64FC1);
@@ -1387,9 +1399,11 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 		//errorSeam.at<Vec3b>(y, x) = Vec3b(0, 0, 255);
 		//seamMap.at<unsigned char>(y, x) = 255;
 	}
+	
+
 	if (scale != 1.0)
 	{
-		fixSeam(seam, hd_pt1, hd_pt2, scale);
+		fixSeam(seam, hd_pt1, hd_pt2, scale, hd_andMask);
 	}
 	//printf("~~~%d\n", seam.size());
 	//sprintf(a, "YO/errorSeam_%d_%d.jpg", imageCodeX, imageCodeY);
@@ -1407,7 +1421,11 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 	return errorBundle;
 }
 
-void fixSeam(vector<Point2i> &seam, Point pt1, Point pt2, double scale)
+inline bool checkBoundry(int width, int height, int x, int y) {
+	return (x >= 0 && x < width && y >= 0 && y < height);
+}
+
+void fixSeam(vector<Point2i> &seam, Point pt1, Point pt2, double scale, Mat andMask)
 {
 	vector<Point2i> fixedSeam;
 	Point currentPoint(pt1.x, pt1.y);
@@ -1420,6 +1438,32 @@ void fixSeam(vector<Point2i> &seam, Point pt1, Point pt2, double scale)
 	fixedSeam.push_back(currentPoint);
 	while (index < seam.size())
 	{
+		if (andMask.at<unsigned char>(nextPoint) != 255) {
+			int x, y;
+			int i = 1;
+			x = nextPoint.x;
+			y = nextPoint.y;
+			while (true) {
+				if (checkBoundry(andMask.cols,andMask.rows, y + i, x) && andMask.at<unsigned char>(y + i, x) == 255) {
+					nextPoint.y = y + i;
+					break;
+				}
+				if (checkBoundry(andMask.cols, andMask.rows, y - i, x) && andMask.at<unsigned char>(y - i, x) == 255) {
+					nextPoint.y = y - i;
+					break;
+				}
+				if (checkBoundry(andMask.cols, andMask.rows, y, x + i) && andMask.at<unsigned char>(y, x + i) == 255) {
+					nextPoint.x = x + i;
+					break;
+				}
+				if (checkBoundry(andMask.cols, andMask.rows, y, x - i) && andMask.at<unsigned char>(y, x - i) == 255) {
+					nextPoint.x = x - i;
+					break;
+				}
+				i++;
+			}
+		}
+
 		dx = (int)ceil(nextPoint.x - currentPoint.x);
 		dy = (int)ceil(nextPoint.y - currentPoint.y);
 
@@ -1447,6 +1491,7 @@ void fixSeam(vector<Point2i> &seam, Point pt1, Point pt2, double scale)
 			break;
 		nextPoint = Point(seam[index].x / scale, seam[index].y / scale);
 	}
+
 
 	dx = (int)ceil(pt1.x - currentPoint.x);
 	dy = (int)ceil(pt1.y - currentPoint.y);
