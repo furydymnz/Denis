@@ -1045,21 +1045,20 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 	Mat tempImage2;
 	if (scale != 1.0)
 	{
+		tempImage1 = image1.clone();
+		tempImage2 = image2.clone();
 		resize(mask1, tempMask1, Size(0, 0), scale, scale, INTER_LINEAR);
 		resize(mask2, tempMask2, Size(0, 0), scale, scale, INTER_LINEAR);
-		resize(image1, tempImage1, Size(0, 0), scale, scale, INTER_LINEAR);
-		resize(image2, tempImage2, Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(image1, image1, Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(image2, image2, Size(0, 0), scale, scale, INTER_LINEAR);
 
 		andMasks = tempMask1 & tempMask2;
 		findIntersection(tempMask1, tempMask2, intersection);
 		findIntersectionPts(pt1, pt2, intersection, andMasks);
 
 		hd_andMask = mask1 & mask2;
-
-		errorMap = Mat(tempImage1.size(), CV_64FC1);
 	}
-	else
-		errorMap = Mat(image1.size(), CV_64FC1);
+	errorMap = Mat(image1.size(), CV_64FC1);
 
 	errorBundle.setErrorMap(errorMap);
 	
@@ -1181,26 +1180,14 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 		//errorSeam.at<Vec3b>(y, x) = Vec3b(0, 0, 255);
 		//seamMap.at<unsigned char>(y, x) = 255;
 	}
-
-	Mat tempMat(errorMap.size(), CV_8UC1, Scalar(0));
-	for (int i = 0; i < seam.size(); i++) {
-		tempMat.at<unsigned char>(seam[i]) = 255;
-	}
-
-	imwrite("YO/seamMap.jpg", tempMat);
 	
 	if (scale != 1.0)
 	{
 		fixSeam(seam, hd_pt1, hd_pt2, scale, hd_andMask);
+		image1 = tempImage1.clone();
+		image2 = tempImage2.clone();
 	}
 
-	char a[100];
-	/*
-	sprintf(a, "YO/errorSeam_%d_%d.jpg", imageCodeX, imageCodeY);
-	imwrite(a, seam);
-	sprintf(a, "YO/seamMap_%d_%d.jpg", imageCodeX, imageCodeY);
-	imwrite(a, errorMap);
-	*/
 	andMasks.release();
 	intersection.release();
 	errorMap.release();
@@ -1240,20 +1227,21 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 	Mat tempImage2;
 	if (scale != 1.0)
 	{
+		tempImage1 = image1.clone();
+		tempImage2 = image2.clone();
 		resize(mask1, tempMask1, Size(0, 0), scale, scale, INTER_LINEAR);
 		resize(mask2, tempMask2, Size(0, 0), scale, scale, INTER_LINEAR);
-		resize(image1, tempImage1, Size(0, 0), scale, scale, INTER_LINEAR);
-		resize(image2, tempImage2, Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(image1, image1, Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(image2, image2, Size(0, 0), scale, scale, INTER_LINEAR);
 
 		andMasks = tempMask1 & tempMask2;
 		findIntersection(tempMask1, tempMask2, intersection);
 		findIntersectionPts(pt1, pt2, intersection, andMasks);
 
-		errorMap = Mat(tempImage1.size(), CV_64FC1);
 		hd_andMask = mask1 & mask2;
 	}
-	else
-		errorMap = Mat(image1.size(), CV_64FC1);
+
+	errorMap = Mat(image1.size(), CV_64FC1);
 
 	errorBundle.setErrorMap(errorMap);
 
@@ -1336,36 +1324,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 				dirMap[i][j] = RIGHT;
 			}
 	}
-	/*
-	//draw errorGraph
-	for (int i = pt1.y; i <= pt2.y; i++)
-	{
-		for (int j = 0; j < errorMap.cols; j++)
-		{
-			if (maxError < errorMap.at<double>(i, j))
-				maxError = errorMap.at<double>(i, j);
-		}
-	}
-	double scale = 255 / maxError;
-	for (int i = 0; i < errorGraph.rows; i++)
-	{
-		for (int r = 0; r < errorGraph.cols; r++)
-		{
-			if (andMasks.at<unsigned char>(i, r) == 0)
-				continue;
-			errorGraph.at<unsigned char>(i, r) =
-				(int)((255 / maxError)*
-					errorMap.at<double>(i, r));
-		}
-	}
-	char a[100];
-	sprintf(a, "YO/errorMap_%d_%d.jpg", imageCodeX, imageCodeY);
-	imwrite(a, errorGraph);
-
-	Mat errorSeam(image1.size(), CV_8UC3);
-	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
-	cvtColor(errorGraph, errorSeam, CV_GRAY2BGR);
-	*/
+	
 	double minError = errorMap.at<double>(pt2.y, pt2.x);
 	Point2i startpt = pt2;
 	vector<Point2i> &seam = errorBundle.getpath();
@@ -1404,12 +1363,10 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 	if (scale != 1.0)
 	{
 		fixSeam(seam, hd_pt1, hd_pt2, scale, hd_andMask);
+		image1 = tempImage1.clone();
+		image2 = tempImage2.clone();
 	}
-	//printf("~~~%d\n", seam.size());
-	//sprintf(a, "YO/errorSeam_%d_%d.jpg", imageCodeX, imageCodeY);
-	//imwrite(a, errorSeam);
-	//sprintf(a, "YO/seamMap_%d_%d.jpg", imageCodeX, imageCodeY);
-	//imwrite(a, seamMap);
+
 
 	andMasks.release();
 	intersection.release();
@@ -1628,19 +1585,13 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 	image1.copyTo(blended, xormask1);
 	image2.copyTo(blended, xormask2);
 
-	for (int i = 0; i < seam.size(); i++)
-		printf("%d %d,", seam[i].x, seam[i].y);
 
 	for (int i = 0; i < seam.size(); i++)
 	{
-	
 		seamMap.at<unsigned char>(seam[i]) = 255;
 	}
 
-	static int picId = 0;
-	char a[100];
-	sprintf(a, "seamMap%d.jpg", picId++);
-	imwrite(a, seamMap);
+
 
 	bool image1Above;
 	bool isSet = false;
@@ -1664,8 +1615,6 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 		if (isSet)
 			break;
 	}
-	Mat temp(Size(1, 1), CV_8UC3, Scalar(0, 255, 0));
-	Mat tempR(Size(1, 1), CV_8UC3, Scalar(0, 0, 255));
 	bool passedSeam;
 	if (image1Above)
 	{
@@ -1685,18 +1634,11 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
 						//blended.at<Vec3b>(i, j) = temp.at<Vec3b>(0, 0);
 				}
-				/*
-				else if ((int)xormask1.at<unsigned char>(i, j) != 0)
-					blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
-				 else
-					blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
-					*/
 			}
 		}
 	}
 	else
 	{
-		bool tempsss = false, done = false;
 		printf("dY<0\n");
 		for (int j = 0; j < blended.cols; j++) {
 			passedSeam = false;
@@ -1713,15 +1655,6 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 						//blended.at<Vec3b>(i, j) = temp.at<Vec3b>(0, 0);
 				}
 
-			}
-			if (passedSeam)
-				tempsss = true;
-			if (tempsss && !passedSeam && !done)
-			{
-				done = true;
-				printf("ERRORRRRRRRRRRRR %d \n", j);
-				for (int i = 0; i < blended.rows; i++)
-					printf("%u,", seamMap.at<unsigned char>(i, j));
 			}
 		}
 	}
