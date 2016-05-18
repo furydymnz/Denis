@@ -33,7 +33,7 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	Mat tempImage;
 
 	double scale = 1.0;
-	const int maxBorder = 1000;
+	const int maxBorder = 10000;
 	const double minScale = 0.3;
 
 	clock_t start, stop;
@@ -203,6 +203,12 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	printf("Time of generateMask is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
 	//matchTracker.applyHomography();
 	
+	printf("===========detectText==============\n");
+	start = clock();
+	matchTracker.detectText();
+	stop = clock();
+	printf("Time of detectText is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
+
 	printf("===========pixelPadding============\n");
 	start = clock();
 	matchTracker.pixelPadding();

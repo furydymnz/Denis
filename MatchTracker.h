@@ -3,6 +3,7 @@
 #include <vector>
 #include "opencv2/core/core.hpp"
 #include "BaseImage.h"
+#include "TextDetector.h"
 
 using namespace std;
 
@@ -26,6 +27,8 @@ public:
 	vector < vector<int> > blendingOrder;
 	vector < vector<pair<Point2i, Point2i> > >pairIntersection;
 	vector < vector < vector<Point2i> > >pairSeam;
+
+	TextDetector textDetector;
 
 	int maxX, maxY, minX, minY;
 	double scale;
@@ -61,6 +64,7 @@ public:
 	void printHomography();
 	void calculateErrorPair();
 	void calculateTranslation();
+	void detectText();
 	void pixelPadding();
 	void calculateIndividualImageBoundary();
 
