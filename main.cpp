@@ -33,7 +33,7 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	Mat tempImage;
 
 	double scale = 1.0;
-	const int maxBorder = 10000;
+	const int maxBorder = 1000;
 	const double minScale = 0.3;
 
 	clock_t start, stop;

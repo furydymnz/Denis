@@ -694,13 +694,23 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 		//errorSeam.at<Vec3b>(y, x) = Vec3b(0, 0, 255);
 		//seamMap.at<unsigned char>(y, x) = 255;
 	}
-
+/*
+	char a[100];
+	static int c = 0;
+	sprintf(a, "%d.jpg", c++);
+	Mat seamMap(image1.size(), CV_8UC1,Scalar(0));
+	for (int i = 0; i < seam.size(); i++)
+		seamMap.at<unsigned char>(seam[i]) = 255;
+	imwrite(a, seamMap);
+	*/
 	if (scale != 1.0)
 	{
 		fixSeam(seam, hd_pt1, hd_pt2, scale, hd_andMask);
 		image1 = tempImage1.clone();
 		image2 = tempImage2.clone();
 	}
+
+
 
 	andMasks.release();
 	intersection.release();
@@ -759,7 +769,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 
 		hd_andMask = mask1 & mask2;
 	}
-
+	imwrite("YO//textMask.jpg", textMask);
 	errorMap = Mat(image1.size(), CV_64FC1);
 
 	errorBundle.setErrorMap(errorMap);
@@ -877,8 +887,15 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 		//errorSeam.at<Vec3b>(y, x) = Vec3b(0, 0, 255);
 		//seamMap.at<unsigned char>(y, x) = 255;
 	}
-	
-
+	/*
+	char a[100];
+	static int c = 0;
+	sprintf(a, "%d.jpg", c++);
+	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
+	for (int i = 0; i < seam.size(); i++)
+		seamMap.at<unsigned char>(seam[i]) = 255;
+	imwrite(a, seamMap);
+	*/
 	if (scale != 1.0)
 	{
 		fixSeam(seam, hd_pt1, hd_pt2, scale, hd_andMask);
@@ -904,12 +921,9 @@ inline bool checkBoundry(int width, int height, int x, int y) {
 void fixSeam(vector<Point2i> &seam, Point pt1, Point pt2, double scale, Mat andMask)
 {
 	vector<Point2i> fixedSeam;
-	Point currentPoint(pt1.x, pt1.y);
+	Point currentPoint(pt2.x, pt2.y);
 	Point nextPoint(seam[0].x / scale, seam[0].y / scale);
 	int dx, dy, index = 1;
-
-	dx = (int)ceil(pt1.x - currentPoint.x);
-	dy = (int)ceil(pt1.y - currentPoint.y);
 
 	fixedSeam.push_back(currentPoint);
 	while (index < seam.size())
@@ -1019,6 +1033,11 @@ void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& m
 	{
 		seamMap.at<unsigned char>(seam[i]) = 255;
 	}
+	char a[100];
+	static int c = 0;
+	sprintf(a, "YO/seam%d.jpg", c++);
+	imwrite(a, seamMap);
+
 	bool passedSeam;
 	bool image1Left;
 	
@@ -1110,7 +1129,10 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 		seamMap.at<unsigned char>(seam[i]) = 255;
 	}
 
-
+	char a[100];
+	static int c = 0;
+	sprintf(a, "YO/seam%d.jpg", c++);
+	imwrite(a, seamMap);
 
 	bool image1Above;
 	bool isSet = false;
