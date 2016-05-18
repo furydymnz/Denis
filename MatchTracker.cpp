@@ -144,6 +144,11 @@ void MatchTracker::pixelPadding()
 		temp = Mat(imageSize, CV_8UC1, cv::Scalar(0));
 		images[i]->getMask().copyTo(temp(Rect(1, 1, images[i]->getMask().cols, images[i]->getMask().rows)));
 		images[i]->assignMask(temp);
+
+		temp = Mat(imageSize, CV_8UC1, cv::Scalar(0));
+		images[i]->getTextMask().copyTo(temp(Rect(1, 1, images[i]->getTextMask().cols, images[i]->getTextMask().rows)));
+		images[i]->assignTextMask(temp);
+
 	}
 }
 
@@ -184,6 +189,15 @@ void MatchTracker::calculateTranslation()
 	}
 }
 
+void MatchTracker::detectText()
+{
+	for (int i = 0; i < size; i++) {
+		if (images[i]->isEmpty()) 
+			continue;
+		images[i]->assignTextMask(textDetector.detect(images[i]->getImage()));
+	}
+}
+
 void MatchTracker::printHomography()
 {
 	for (int i = 0; i < size; i++)
@@ -207,6 +221,7 @@ void MatchTracker::calculateErrorPair()
 {
 	Mat andMask;
 	ErrorBundle errorBundle;
+
 	for (int i = 0; i < size - 1; i++)
 	{
 		Mat mask1;
@@ -239,12 +254,14 @@ void MatchTracker::calculateErrorPair()
 			{
 				printf("Horizontal\n");
 				
-				errorBundle = horizontalErrorMap(image1, image2, mask1, mask2, scale, i, r);
+				errorBundle = horizontalErrorMap(image1, image2, mask1, mask2,
+					getImage(i)->getTextMask(), getImage(r)->getTextMask(), scale);
 			}
 			else
 			{
 				printf("Vertical\n");
-				errorBundle = verticalErrorMap(image1, image2, mask1, mask2, scale, i, r);
+				errorBundle = verticalErrorMap(image1, image2, mask1, mask2, 
+					getImage(i)->getTextMask(), getImage(r)->getTextMask(), scale);
 			}
 
 			double pathError = errorBundle.getPathError() / errorBundle.getpath().size();
@@ -333,14 +350,16 @@ Mat MatchTracker::blending()
 			if (abs(pt1.x - pt2.x) > abs(pt1.y - pt2.y))
 			{
 				printf("Horizontal\n");
-				errorBundle = horizontalErrorMap(blended, image2, mask1, mask2, scale, j, k);
+				errorBundle = horizontalErrorMap(blended, image2, mask1, mask2, 
+					getImage(j)->getTextMask(), getImage(k)->getTextMask(), scale);
 				horizontalBlending(blended, blended, image2,
 					mask1, mask2, errorBundle.getpath());
 			}
 			else
 			{
 				printf("Vertical\n");
-				errorBundle = verticalErrorMap(blended, image2, mask1, mask2, scale, j, k);
+				errorBundle = verticalErrorMap(blended, image2, mask1, mask2, 
+					getImage(j)->getTextMask(), getImage(k)->getTextMask(), scale);
 				verticalBlending(blended, blended, image2,
 					mask1, mask2, errorBundle.getpath());
 			}
