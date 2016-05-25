@@ -376,7 +376,7 @@ void ComputeError(int i, int j, Mat &image1, Mat &image2, direction **dirMap, Ma
 					getDPError(i-1, j+1, errorMap, dirMap),
 					getDPError(i, j-1, errorMap, dirMap),
 					getDPError(i, j+1, errorMap, dirMap),};
-	double minError = 110000;
+	double minError = DBL_MAX;
 	int minDir = -1;
 	for(int i=0 ; i<5 ; i++)
 	{
@@ -477,10 +477,7 @@ void ComputeHorizontalError(int i, int j, Mat &image1, Mat &image2, direction **
 		default:
 			dirMap[i][j]=CURRENT;
 		}
-		if(eCurrent <= DBL_MAX)
-			errorMap.at<double>(i, j) = eCurrent + minError;
-		else
-			errorMap.at<double>(i, j) = DBL_MAX;
+		errorMap.at<double>(i, j) = eCurrent + minError;
 	}
 
 }
