@@ -932,31 +932,32 @@ void fixSeam(vector<Point2i> &seam, Point pt1, Point pt2, double scale, Mat andM
 	fixedSeam.push_back(currentPoint);
 	while (index < seam.size())
 	{
+		/*
 		if (andMask.at<unsigned char>(nextPoint) != 255) {
 			int x, y;
 			int i = 1;
 			x = nextPoint.x;
 			y = nextPoint.y;
 			while (true) {
-				if (checkBoundry(andMask.cols,andMask.rows, y + i, x) && andMask.at<unsigned char>(y + i, x) == 255) {
+				if (andMask.at<unsigned char>(y + i, x) == 255) {
 					nextPoint.y = y + i;
 					break;
 				}
-				if (checkBoundry(andMask.cols, andMask.rows, y - i, x) && andMask.at<unsigned char>(y - i, x) == 255) {
+				if (andMask.at<unsigned char>(y - i, x) == 255) {
 					nextPoint.y = y - i;
 					break;
 				}
-				if (checkBoundry(andMask.cols, andMask.rows, y, x + i) && andMask.at<unsigned char>(y, x + i) == 255) {
+				if (andMask.at<unsigned char>(y, x + i) == 255) {
 					nextPoint.x = x + i;
 					break;
 				}
-				if (checkBoundry(andMask.cols, andMask.rows, y, x - i) && andMask.at<unsigned char>(y, x - i) == 255) {
+				if (andMask.at<unsigned char>(y, x - i) == 255) {
 					nextPoint.x = x - i;
 					break;
 				}
 				i++;
 			}
-		}
+		}*/
 
 		dx = (int)ceil(nextPoint.x - currentPoint.x);
 		dy = (int)ceil(nextPoint.y - currentPoint.y);
