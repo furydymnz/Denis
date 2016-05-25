@@ -8,9 +8,11 @@ using namespace std;
 
 class TextDetector
 {
+	bool textMode;
 public:
 	TextDetector();
 	~TextDetector();
 	Mat detect(Mat img);
+	void setTextMode(bool mode);
 };
 
