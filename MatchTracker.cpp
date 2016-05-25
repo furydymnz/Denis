@@ -303,6 +303,23 @@ Mat MatchTracker::blending()
 	}
 	
 	Mat orMask, andMask;
+	Mat textMask;
+	vector<Point2i> seam;
+	for (int i = 0; i < blendingOrder[minErrorIndex].size() - 1; i++) {
+		Mat textMask1;
+		warpPerspective(getImage(blendingOrder[minErrorIndex][i])->getTextMask(), textMask1, getImage(blendingOrder[minErrorIndex][i])->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+		Mat textMask2;
+		warpPerspective(getImage(blendingOrder[minErrorIndex][i + 1])->getTextMask(), textMask2, getImage(blendingOrder[minErrorIndex][i + 1])->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+		if (i == 0) {
+			textMask = textMask1;
+		}
+		else {
+			textMask = textMask | textMask2;
+		}
+	}
+	Mat seamMap;
+	cvtColor(textMask, seamMap, CV_GRAY2RGB);
+
 	for (int i = 0; i < blendingOrder[minErrorIndex].size() - 1; i++)
 	{
 		pair<Point2i, Point2i> pts;
@@ -337,7 +354,10 @@ Mat MatchTracker::blending()
 				verticalBlending(blended, blended, image2,
 					mask1, mask2, getPairSeam(blendingOrder[minErrorIndex][i], blendingOrder[minErrorIndex][i + 1]));
 			}
-
+			seam = getPairSeam(blendingOrder[minErrorIndex][i], blendingOrder[minErrorIndex][i + 1]);
+			for (int k = 0; k < seam.size(); k++) {
+				seamMap.at<Vec3b>(seam[k]) = Vec3b(0, 0, 255);
+			}
 		}
 		else
 		{
@@ -361,6 +381,11 @@ Mat MatchTracker::blending()
 					textMask1, textMask2, scale);
 				horizontalBlending(blended, blended, image2,
 					mask1, mask2, errorBundle.getpath());
+
+				vector<Point2i> &seam = errorBundle.getpath();
+				for (int k = 0; k < seam.size(); k++) {
+					seamMap.at<Vec3b>(seam[k]) = Vec3b(0, 0, 255);
+				}
 			}
 			else
 			{
@@ -369,8 +394,14 @@ Mat MatchTracker::blending()
 					textMask1, textMask2, scale);
 				verticalBlending(blended, blended, image2,
 					mask1, mask2, errorBundle.getpath());
+
+				vector<Point2i> &seam = errorBundle.getpath();
+				for (int k = 0; k < seam.size(); k++) {
+					seamMap.at<Vec3b>(seam[k]) = Vec3b(0, 0, 255);
+				}
 			}
 			intersection.release();
+
 		}
 		orMask = mask1 | mask2;
 		andMask.release();
@@ -378,7 +409,7 @@ Mat MatchTracker::blending()
 		mask2.release();
 		image2.release();
 		image1.release();
-
+		imwrite("text.jpg", seamMap);
 		//orMask = orMask > 0;
 
 	}

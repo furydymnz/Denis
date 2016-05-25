@@ -364,7 +364,7 @@ void ComputeError(int i, int j, Mat &image1, Mat &image2, direction **dirMap, Ma
 	double eCurrent;
 	if (textMask.at<unsigned char>(i, j) == 255)
 	{
-		eCurrent = 999;
+		eCurrent = 441;
 	}
 	else
 	{
@@ -426,7 +426,7 @@ void ComputeHorizontalError(int i, int j, Mat &image1, Mat &image2, direction **
 	double eCurrent;
 	if (textMask.at<unsigned char>(i, j) == 255)
 	{
-		eCurrent = 999;
+		eCurrent = 441;
 	}
 	else
 	{
@@ -657,7 +657,7 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 				&& dirMap[i - 1][j] == BOTTOM && dirMap[i][j] == TOP)
 			{
 				//may have some error
-				dirMap[i - 1][j] = TOP;
+				//dirMap[i - 1][j] = TOP;
 				dirMap[i][j] = BOTTOM;
 			}
 	}
@@ -842,17 +842,20 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 			}
 		}
 	}
+
+	
 	for (int i = pt1.y; i <= pt2.y; i++)
 	{
 		for (int j = 0; j < errorMap.cols; j++)
 			if (j + 1<errorMap.cols && j>0
 				&& dirMap[i][j - 1] == RIGHT && dirMap[i][j] == LEFT)
 			{
-				dirMap[i][j - 1] = LEFT;
+				//dirMap[i][j - 1] = LEFT;
 				dirMap[i][j] = RIGHT;
 			}
 	}
-	
+
+
 	double minError = errorMap.at<double>(pt2.y, pt2.x);
 	Point2i startpt = pt2;
 	vector<Point2i> &seam = errorBundle.getpath();
@@ -886,15 +889,16 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 		//errorSeam.at<Vec3b>(y, x) = Vec3b(0, 0, 255);
 		//seamMap.at<unsigned char>(y, x) = 255;
 	}
+/*
 	Mat seamMap;
 	cvtColor(textMask,seamMap,CV_GRAY2RGB);
 	char a[100];
 	static int c = 0;
 	sprintf(a, "%d.jpg", c++);
 	for (int i = 0; i < seam.size(); i++)
-		seamMap.at<Vec3b>(seam[i]) = Scalar(255, 0, 0);
+		seamMap.at<Vec3b>(seam[i]) = Vec3b(255, 0, 0);
 	imwrite(a, seamMap);
-
+	*/
 	
 	if (scale != 1.0)
 	{
