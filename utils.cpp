@@ -571,7 +571,7 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 
 		hd_andMask = mask1 & mask2;
 	}
-	imwrite("YO//textMask.jpg", textMask);
+	
 	errorMap = Mat(image1.size(), CV_64FC1);
 
 	errorBundle.setErrorMap(errorMap);
@@ -769,7 +769,6 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 
 		hd_andMask = mask1 & mask2;
 	}
-	imwrite("YO//textMask.jpg", textMask);
 	errorMap = Mat(image1.size(), CV_64FC1);
 
 	errorBundle.setErrorMap(errorMap);
@@ -887,15 +886,16 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 		//errorSeam.at<Vec3b>(y, x) = Vec3b(0, 0, 255);
 		//seamMap.at<unsigned char>(y, x) = 255;
 	}
-	/*
+	Mat seamMap;
+	cvtColor(textMask,seamMap,CV_GRAY2RGB);
 	char a[100];
 	static int c = 0;
 	sprintf(a, "%d.jpg", c++);
-	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
 	for (int i = 0; i < seam.size(); i++)
-		seamMap.at<unsigned char>(seam[i]) = 255;
+		seamMap.at<Vec3b>(seam[i]) = Scalar(255, 0, 0);
 	imwrite(a, seamMap);
-	*/
+
+	
 	if (scale != 1.0)
 	{
 		fixSeam(seam, hd_pt1, hd_pt2, scale, hd_andMask);
