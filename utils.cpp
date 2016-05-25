@@ -654,7 +654,7 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 				&& dirMap[i - 1][j] == BOTTOM && dirMap[i][j] == TOP)
 			{
 				//may have some error
-				//dirMap[i - 1][j] = TOP;
+				dirMap[i - 1][j] = TOP;
 				dirMap[i][j] = BOTTOM;
 			}
 	}
@@ -847,7 +847,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 			if (j + 1<errorMap.cols && j>0
 				&& dirMap[i][j - 1] == RIGHT && dirMap[i][j] == LEFT)
 			{
-				//dirMap[i][j - 1] = LEFT;
+				dirMap[i][j - 1] = LEFT;
 				dirMap[i][j] = RIGHT;
 			}
 	}
