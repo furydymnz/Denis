@@ -160,6 +160,8 @@ void MatchTracker::pixelPadding()
 void MatchTracker::applyHomography()
 {
 	warpPerspective(images[pivotIndex]->getImage(), images[pivotIndex]->getImage(), images[pivotIndex]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+	warpPerspective(images[pivotIndex]->getMask(), images[pivotIndex]->getMask(), images[pivotIndex]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+	warpPerspective(images[pivotIndex]->getTextMask(), images[pivotIndex]->getTextMask(), images[pivotIndex]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
 }
 
 void MatchTracker::generateMask()
@@ -236,7 +238,6 @@ void MatchTracker::calculateErrorPair()
 		{
 			if (!getPairConnection(i, r))
 				continue;
-			
 			Mat mask2;
 			warpPerspective(getImage(r)->getMask(), mask2, images[r]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
 			Mat image2;
@@ -276,7 +277,6 @@ void MatchTracker::calculateErrorPair()
 			assignErrorPair(i, r, pathError);
 			
 			intersection.release();
-			
 			andMask.release();
 			image2.release();
 			mask2.release();

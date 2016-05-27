@@ -14,8 +14,8 @@ Mat TextDetector::detect(Mat img)
 {
 	Mat textMask = Mat::zeros(img.size(), CV_8UC1);
 	Mat small;
-	const int HEIGHT_BOUND = img.size().height / 200;
-	const int WIDTH_BOUND = img.size().width / 200;
+	const int HEIGHT_BOUND = img.size().height / 300;
+	const int WIDTH_BOUND = img.size().width / 300;
 	cvtColor(img, small, CV_BGR2GRAY);
 
 	// morphological gradient

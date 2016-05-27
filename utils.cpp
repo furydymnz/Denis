@@ -345,12 +345,8 @@ inline double DIS(double x1, double y1, double x2, double y2)
 
 void findIntersection(Mat& mask1, Mat& mask2, Mat& intersection)
 {
-	Mat border1 = border(mask1);
-	Mat border2 = border(mask2);
-	intersection = ~(border1 | border2);
+	intersection = ~( border(mask1) | border(mask2) );
 
-	border1.release();
-	border2.release();
 }
 double getDPError(int i, int j, Mat &errorMap, direction **dirMap)
 {
@@ -710,13 +706,15 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 		image2 = tempImage2.clone();
 	}
 
-
-
+	hd_andMask.release();
+	tempImage1.release();
+	tempImage2.release();
+	tempTextMask1.release();
+	tempTextMask2.release();
+	tempMask1.release();
+	tempMask2.release();
 	andMasks.release();
 	intersection.release();
-	errorMap.release();
-	//errorSeam.release();
-	//seamMap.release();
 
 	return errorBundle;
 }
@@ -903,13 +901,16 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 		image2 = tempImage2.clone();
 	}
 
-
+	hd_andMask.release();
+	tempImage1.release();
+	tempImage2.release();
+	tempTextMask1.release();
+	tempTextMask2.release();
+	tempMask1.release();
+	tempMask2.release();
 	andMasks.release();
 	intersection.release();
 	errorGraph.release();
-	errorMap.release();
-	//errorSeam.release();
-	//seamMap.release();
 
 	return errorBundle;
 }
