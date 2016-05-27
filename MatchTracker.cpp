@@ -159,9 +159,28 @@ void MatchTracker::pixelPadding()
 
 void MatchTracker::applyHomography()
 {
-	warpPerspective(images[pivotIndex]->getImage(), images[pivotIndex]->getImage(), images[pivotIndex]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
-	warpPerspective(images[pivotIndex]->getMask(), images[pivotIndex]->getMask(), images[pivotIndex]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
-	warpPerspective(images[pivotIndex]->getTextMask(), images[pivotIndex]->getTextMask(), images[pivotIndex]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+	char str[100];
+	
+	for (int i = 0; i < size; i++)
+	{ 
+		Mat newHomo = Mat::eye(3, 3, CV_64F);
+		int width = images[i]->maxX - images[i]->minX;
+		int height = images[i]->maxY - images[i]->minY;
+		Size newSize = Size(width, height);
+		newHomo.at<double>(0, 2) = -images[i]->minX;
+		newHomo.at<double>(1, 2) = -images[i]->minY;
+		images[i]->assignHomography(images[i]->getHomography()*newHomo);
+		images[i]->size = newSize;
+		/*
+		warpPerspective(images[i]->getImage(), images[i]->getImage(), images[i]->getHomography(), newSize, INTER_NEAREST, BORDER_CONSTANT);
+		warpPerspective(images[i]->getMask(), images[i]->getMask(), images[i]->getHomography(), newSize, INTER_NEAREST, BORDER_CONSTANT);
+		warpPerspective(images[i]->getTextMask(), images[i]->getTextMask(), images[i]->getHomography(), newSize, INTER_NEAREST, BORDER_CONSTANT);
+		sprintf(str, "YO/img%d.jpg", i);
+		imwrite(str, images[i]->getImage());
+		*/
+	}
+
+	
 }
 
 void MatchTracker::generateMask()
@@ -184,12 +203,25 @@ void MatchTracker::calculateTranslation()
 {
 	Mat H;
 	Mat transM = Mat::eye(3, 3, CV_64F);
+	Mat sizeM = Mat::eye(3, 3, CV_64F);
 	transM.at<double>(0, 2) = -minX;
 	transM.at<double>(1, 2) = -minY;
 	for (int i = 0; i < size; i++)
 	{
+		
 		H = images[i]->getHomography();
 		H = transM*H;
+		sizeM.at<double>(0, 2) = images[i]->minX;
+		sizeM.at<double>(1, 2) = images[i]->minY;
+		sizeM = transM*sizeM;
+		images[i]->minX = sizeM.at<double>(0, 2);
+		images[i]->minY = sizeM.at<double>(1, 2);
+
+		sizeM.at<double>(0, 2) = images[i]->maxX;
+		sizeM.at<double>(1, 2) = images[i]->maxY;
+		sizeM = transM*sizeM;
+		images[i]->maxX = sizeM.at<double>(0, 2);
+		images[i]->maxY = sizeM.at<double>(1, 2);
 	}
 }
 
@@ -229,21 +261,21 @@ void MatchTracker::calculateErrorPair()
 	for (int i = 0; i < size - 1; i++)
 	{
 		Mat mask1;
-		warpPerspective(getImage(i)->getMask(), mask1, images[i]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+		warpPerspective(getImage(i)->getMask(), mask1, images[i]->getHomography(), images[i]->size, INTER_NEAREST, BORDER_CONSTANT);
 		Mat image1;
-		warpPerspective(getImage(i)->getImage(), image1, images[i]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+		warpPerspective(getImage(i)->getImage(), image1, images[i]->getHomography(), images[i]->size, INTER_NEAREST, BORDER_CONSTANT);
 		Mat textMask1;
-		warpPerspective(getImage(i)->getTextMask(), textMask1, images[i]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+		warpPerspective(getImage(i)->getTextMask(), textMask1, images[i]->getHomography(), images[i]->size, INTER_NEAREST, BORDER_CONSTANT);
 		for (int r = i + 1; r < size; r++)
 		{
 			if (!getPairConnection(i, r))
 				continue;
 			Mat mask2;
-			warpPerspective(getImage(r)->getMask(), mask2, images[r]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+			warpPerspective(getImage(r)->getMask(), mask2, images[r]->getHomography(), images[r]->size, INTER_NEAREST, BORDER_CONSTANT);
 			Mat image2;
-			warpPerspective(getImage(r)->getImage(), image2, images[r]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+			warpPerspective(getImage(r)->getImage(), image2, images[r]->getHomography(), images[r]->size, INTER_NEAREST, BORDER_CONSTANT);
 			Mat textMask2;
-			warpPerspective(getImage(r)->getTextMask(), textMask2, images[r]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+			warpPerspective(getImage(r)->getTextMask(), textMask2, images[r]->getHomography(), images[r]->size, INTER_NEAREST, BORDER_CONSTANT);
 			andMask = mask1 & mask2;
 
 			Mat intersection;

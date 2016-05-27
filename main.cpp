@@ -225,13 +225,15 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 		printf("\n");
 	}
 	
+	matchTracker.applyHomography();
 
+	
 	start = clock();
 	matchTracker.calculateErrorPair();
 	stop = clock();
 	printf("Time of calculateErrorPair is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
 
-
+	/*
 	printf("=============PairError=========\n");
 	for (int i = 0; i < imageCount; i++)
 	{
@@ -261,7 +263,7 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	char c;
 	scanf(" %c", &c);
 	cvWaitKey(0);
-	
+	*/
 	return 0;
 }
 //-------------------------------------------------------
