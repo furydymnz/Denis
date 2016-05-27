@@ -6,9 +6,10 @@
 #include "opencv2/calib3d/calib3d.hpp"
 
 
-MatchTracker::MatchTracker(int size)
+MatchTracker::MatchTracker(int size, double scale)
 {
 	this->size = size;
+	this->scale = scale;
 	pairNum.resize(size);
 	pairFP.resize(size);
 	routes.resize(size);
@@ -143,6 +144,11 @@ void MatchTracker::pixelPadding()
 		temp = Mat(imageSize, CV_8UC1, cv::Scalar(0));
 		images[i]->getMask().copyTo(temp(Rect(1, 1, images[i]->getMask().cols, images[i]->getMask().rows)));
 		images[i]->assignMask(temp);
+
+		temp = Mat(imageSize, CV_8UC1, cv::Scalar(0));
+		images[i]->getTextMask().copyTo(temp(Rect(1, 1, images[i]->getTextMask().cols, images[i]->getTextMask().rows)));
+		images[i]->assignTextMask(temp);
+
 	}
 }
 
@@ -183,6 +189,15 @@ void MatchTracker::calculateTranslation()
 	}
 }
 
+void MatchTracker::detectText()
+{
+	for (int i = 0; i < size; i++) {
+		if (images[i]->isEmpty()) 
+			continue;
+		images[i]->assignTextMask(textDetector.detect(images[i]->getImage()));
+	}
+}
+
 void MatchTracker::printHomography()
 {
 	for (int i = 0; i < size; i++)
@@ -206,12 +221,15 @@ void MatchTracker::calculateErrorPair()
 {
 	Mat andMask;
 	ErrorBundle errorBundle;
+
 	for (int i = 0; i < size - 1; i++)
 	{
 		Mat mask1;
 		warpPerspective(getImage(i)->getMask(), mask1, images[i]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
 		Mat image1;
 		warpPerspective(getImage(i)->getImage(), image1, images[i]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+		Mat textMask1;
+		warpPerspective(getImage(i)->getTextMask(), textMask1, images[i]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
 		for (int r = i + 1; r < size; r++)
 		{
 			if (!getPairConnection(i, r))
@@ -221,6 +239,8 @@ void MatchTracker::calculateErrorPair()
 			warpPerspective(getImage(r)->getMask(), mask2, images[r]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
 			Mat image2;
 			warpPerspective(getImage(r)->getImage(), image2, images[r]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+			Mat textMask2;
+			warpPerspective(getImage(r)->getTextMask(), textMask2, images[r]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
 			andMask = mask1 & mask2;
 
 			Mat intersection;
@@ -238,12 +258,14 @@ void MatchTracker::calculateErrorPair()
 			{
 				printf("Horizontal\n");
 				
-				errorBundle = horizontalErrorMap(image1, image2, mask1, mask2, i, r);
+				errorBundle = horizontalErrorMap(image1, image2, mask1, mask2,
+					textMask1, textMask2, scale);
 			}
 			else
 			{
 				printf("Vertical\n");
-				errorBundle = verticalErrorMap(image1, image2, mask1, mask2, i, r);
+				errorBundle = verticalErrorMap(image1, image2, mask1, mask2, 
+					textMask1, textMask2, scale);
 			}
 
 			double pathError = errorBundle.getPathError() / errorBundle.getpath().size();
@@ -262,20 +284,6 @@ void MatchTracker::calculateErrorPair()
 	}
 }
 
-void MatchTracker::calculateErrorSeamTest()
-{
-	ErrorBundle errorBundle;
-	const float fpThreshold = 0.3;
-	const int fpBottomLimit = 10;
-	for (int i = 0; i < size-1; i++)
-	{
-		for (int j = i + 1; j < size; j++)
-		{
-			
-		}
-	}
-
-}
 
 Mat MatchTracker::blending()
 {
@@ -293,7 +301,7 @@ Mat MatchTracker::blending()
 			minErrorIndex = i;
 		}
 	}
-
+	
 	Mat orMask, andMask;
 	for (int i = 0; i < blendingOrder[minErrorIndex].size() - 1; i++)
 	{
@@ -310,9 +318,13 @@ Mat MatchTracker::blending()
 		Mat image1;
 		warpPerspective(getImage(blendingOrder[minErrorIndex][i])->getImage(), image1,
 			getImage(blendingOrder[minErrorIndex][i])->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+		Mat textMask1;
+		warpPerspective(getImage(blendingOrder[minErrorIndex][i])->getTextMask(), textMask1, getImage(blendingOrder[minErrorIndex][i])->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+		Mat textMask2;
+		warpPerspective(getImage(blendingOrder[minErrorIndex][i + 1])->getTextMask(), textMask2, getImage(blendingOrder[minErrorIndex][i + 1])->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
 		if (i == 0) 
 		{
-			blended = image1;
+			blended = image1.clone();
 
 			pts = getPairInteresection(blendingOrder[minErrorIndex][i], blendingOrder[minErrorIndex][i + 1]);
 			if (abs(pts.first.x - pts.second.x) > abs(pts.first.y - pts.second.y))
@@ -345,14 +357,16 @@ Mat MatchTracker::blending()
 			if (abs(pt1.x - pt2.x) > abs(pt1.y - pt2.y))
 			{
 				printf("Horizontal\n");
-				errorBundle = horizontalErrorMap(blended, image2, mask1, mask2, j, k);
+				errorBundle = horizontalErrorMap(blended, image2, mask1, mask2, 
+					textMask1, textMask2, scale);
 				horizontalBlending(blended, blended, image2,
 					mask1, mask2, errorBundle.getpath());
 			}
 			else
 			{
 				printf("Vertical\n");
-				errorBundle = verticalErrorMap(blended, image2, mask1, mask2, j, k);
+				errorBundle = verticalErrorMap(blended, image2, mask1, mask2, 
+					textMask1, textMask2, scale);
 				verticalBlending(blended, blended, image2,
 					mask1, mask2, errorBundle.getpath());
 			}

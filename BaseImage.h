@@ -9,6 +9,7 @@
 class BaseImage {
 	Mat image;
 	Mat mask;
+	Mat textMask;
 	Mat homography;
 	int empty;
 public:
@@ -19,10 +20,12 @@ public:
 	void assignImage(Mat im) { image = im.clone();}
 	void assignHomography(Mat h){ homography = h.clone(); }
 	void assignMask(Mat m) { mask = m.clone(); }
+	void assignTextMask(Mat m) { textMask = m.clone(); }
 
 	Mat& getHomography(){ return homography; }
 	Mat& getMask() { return mask; }
 	Mat& getImage(){ return image; }
+	Mat& getTextMask() { return textMask; }
 	Size getSize() { return image.size(); }
 
 	void findBoundary();

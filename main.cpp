@@ -1,13 +1,3 @@
-/*********************************************************** 
-*  --- OpenSURF ---                                       *
-*  This library is distributed under the GNU GPL. Please   *
-*  use the contact form at http://www.chrisevansdev.com    *
-*  for more information.                                   *
-*                                                          *
-*  C. Evans, Research Into Robust Visual Features,         *
-*  MSc University of Bristol, 2008.                        *
-*                                                          *
-************************************************************/
 
 #include "surflib.h"
 #include "utils.h"
@@ -16,6 +6,7 @@
 #include "BaseImage.h"
 #include "Blender.h"
 #include "time.h"
+#include <stdio.h>
 #include <ctime>
 #include <iostream>
 #include <vector>
@@ -24,28 +15,26 @@
 
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
+#include "opencv2/opencv_modules.hpp"
+# include "opencv2/core/core.hpp"
+# include "opencv2/features2d/features2d.hpp"
+# include "opencv2/nonfree/features2d.hpp"
 
 using namespace std;
 using namespace cv;
-//-------------------------------------------------------
-// In order to you use OpenSURF, the following illustrates
-// some of the simple tasks you can do.  It takes only 1
-// function call to extract described SURF features!
-// Define PROCEDURE as:
-//  - 1 and supply image path to run on static image
-//  - 2 to capture from a webcam
-//  - 3 to match find an object in an image (work in progress)
-//  - 4 to display moving features (work in progress)
-//  - 5 to show matches between static images
 
 #define PROCEDURE 8
 
 //-------------------------------------------------------
 
 int mainStaticStitching(int imageCount, char *imageStr[]){
-	vector <IplImage * > vImage;
+	vector <Mat > vImage;
 	vector <char * > vString;
-	IplImage *tempImage;
+	Mat tempImage;
+
+	double scale = 1.0;
+	const int maxBorder = 1000;
+	const double minScale = 0.3;
 
 	clock_t start, stop;
 	clock_t tstart, tstop;
@@ -53,10 +42,30 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	//Load images
 	tstart = clock();
 	start = clock();
+	
 	for(int i=1 ; i<imageCount ; i++)
 	{
-		tempImage = cvLoadImage(imageStr[i]);
-		if (tempImage != NULL)
+		tempImage = imread(imageStr[i]);
+		if (i == 1)
+		{
+			if ((tempImage.size().width) > (tempImage.size().height))
+			{
+				if ((tempImage.size().width) > maxBorder)
+					scale = (double)maxBorder / (tempImage.size().width);
+			}
+			else
+			{
+				if ((tempImage.size().height) > maxBorder)
+					scale = (double)maxBorder / (tempImage.size().height);
+			}
+			if (scale<minScale)
+				scale = minScale;
+		}
+		printf("scale: %lf\n",scale);
+		if (scale != 1.0)
+			resize(tempImage, tempImage, Size(0, 0), scale, scale, INTER_LINEAR);
+
+		if (!tempImage.empty())
 		{
 			vImage.push_back(tempImage);
 			printf("%s\n", imageStr[i]);
@@ -70,67 +79,72 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	stop = clock();
 	printf("Time of LoadImages is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
 
+	
 	start = clock();
 
-	MatchTracker matchTracker(imageCount);
+	MatchTracker matchTracker(imageCount, scale);
 
 	for (int i = 0; i < vImage.size(); i++)
 	{
 		matchTracker.pushImage(new BaseImage(vString[i]));
 	}
+
 	//Find surf descriptions
-	IpVec tempIpVec;
-	vector <IpVec > vIpVec;
-	for(int i=0 ; i<imageCount ; i++)
-	{
-		surfDetDes(vImage[i], tempIpVec, false, 4, 4, 2, 0.0001f);
-		vIpVec.push_back(tempIpVec);
-		cvReleaseImage(&(vImage[i]));
-	}
-	printf("surfDetDes\n");
-	/*
+	vector<Mat> descriptorsList;
+	vector<vector<Point2f> > arraysOfKeyPoints;
+	int minHessian = 400;
+
+	SurfFeatureDetector detector(minHessian);
+	SurfDescriptorExtractor extractor;
+
 	for (int i = 0; i < imageCount; i++) {
-		Mat image = (*matchTracker.getImage(i)).getImage();
-		drawPoints(image, vIpVec[i]);
-		char file[100];
-		sprintf(file, "image%i.jpg", i);
-		imwrite(file, image);
-	}*/
+		std::vector<KeyPoint> keypoints;
+		Mat descriptors;
+		detector.detect(vImage[i], keypoints);
+		extractor.compute(vImage[i], keypoints, descriptors);
+		descriptorsList.push_back(descriptors.clone());
+		vector<Point2f> temp;
+		for (int j = 0; j < keypoints.size(); j++) {
+			temp.push_back(keypoints[j].pt);
+		}
+		arraysOfKeyPoints.push_back(temp);
+	}
 
 	stop = clock();
 	printf("Time of Surf is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
 
 	start = clock();
 
-	//Find match
-	IpPairVec tempMatch, bestMatch;
-	int iBestMatch;
-	
-	for(int i=0 ; i<imageCount-1 ; i++)
-	{
-		for(int r=i+1 ; r<imageCount ; r++)
-		{
-			getMatches(vIpVec[i],vIpVec[r], tempMatch);
+	FlannBasedMatcher matcher;
+	for (int i = 0; i < imageCount - 1; i++) {
+		for (int j = i + 1; j < imageCount; j++) {
+			std::vector<vector<DMatch> > matches;
+			matcher.knnMatch(descriptorsList[i], descriptorsList[j], matches, 5);
+			int fpNum = 0;
 
-			matchTracker.assignFPNum(i, r, tempMatch.size());
-			matchTracker.assignFPPair(i, r, tempMatch);
-			printf("getMatches %d %d\n", i, r);
+			IpPairVec tempMatch;
+			vector<Point2f> keyPoint1 = arraysOfKeyPoints[i];
+			vector<Point2f> keyPoint2 = arraysOfKeyPoints[j];
+			for (int k = 0; k < matches.size(); k++) {
+				vector<DMatch> dmatch = matches[k];
+				if (dmatch[0].distance / dmatch[1].distance < 0.65) {
+					Point2f pt1 = keyPoint1[dmatch[0].queryIdx];
+					Point2f pt2 = keyPoint2[dmatch[0].trainIdx];
+					tempMatch.push_back(make_pair(Ipoint((pt1.x/scale), pt1.y / scale), Ipoint(pt2.x / scale, pt2.y / scale)));
+					fpNum++;
+				}
+			}
+			matchTracker.assignFPNum(i, j, fpNum);
+			matchTracker.assignFPPair(i, j, tempMatch);
+			printf("getMatches %d %d %d\n", i, j, fpNum);
 		}
 	}
+	vImage.clear();
+	printf("surfDetDes\n");
 
 	stop = clock();
 	printf("Time of getMatches is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
 
-	printf("\n");
-	for (int i = 0; i < imageCount; i++)
-	{
-		printf("For %5d: ", i);
-		for (int r = 0; r < imageCount; r++)
-		{
-			printf("%5d", matchTracker.getPairNum(i)[r]);
-		}
-		printf("---%5d\n", vIpVec[i].size());
-	}
 	printf("\n");
 
 	start = clock();
@@ -189,6 +203,12 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	printf("Time of generateMask is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
 	//matchTracker.applyHomography();
 	
+	printf("===========detectText==============\n");
+	start = clock();
+	matchTracker.detectText();
+	stop = clock();
+	printf("Time of detectText is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
+
 	printf("===========pixelPadding============\n");
 	start = clock();
 	matchTracker.pixelPadding();
@@ -218,11 +238,7 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 			printf("%d ->", order[r]);
 		printf("\n");
 	}
-	/*
-	Blender blender(&matchTracker);
-	blender.generateBlendingOrder();
-	blender.printBlendingOrder();
-	*/
+	
 
 	start = clock();
 	matchTracker.calculateErrorPair();
@@ -245,10 +261,7 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	printf("============Blending===========\n");
 	start = clock();
 	Mat blended = matchTracker.blending();
-	/*vector<Point2i>seam = matchTracker.getPairSeam(0, 1);
-	for (int i = 0; i < seam.size(); i++) {
-		printf("%d %d\n", seam[i].x, seam[i].y);
-	}*/
+
 	imwrite("YO/blended.jpg", blended);
 	printf("done\n");
 	stop = clock();
@@ -258,7 +271,7 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	
 	tstop = clock();
 	printf("Total Time of blending is: %lf seconds\n", double(tstop - tstart) / CLOCKS_PER_SEC);
-
+	
 	char c;
 	scanf(" %c", &c);
 	cvWaitKey(0);

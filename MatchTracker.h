@@ -3,6 +3,7 @@
 #include <vector>
 #include "opencv2/core/core.hpp"
 #include "BaseImage.h"
+#include "TextDetector.h"
 
 using namespace std;
 
@@ -27,10 +28,13 @@ public:
 	vector < vector<pair<Point2i, Point2i> > >pairIntersection;
 	vector < vector < vector<Point2i> > >pairSeam;
 
+	TextDetector textDetector;
+
 	int maxX, maxY, minX, minY;
+	double scale;
 	int size;
 	Size imageSize;
-	MatchTracker(int size);
+	MatchTracker(int size, double scale);
 
 	void assignFPNum(int i, int r, int fp) { pairNum[i][r] = fp; pairNum[r][i] = fp; }
 	void assignErrorPair(int i, int r, double err) { pairError[i][r] = err; pairError[r][i] = err; }
@@ -59,8 +63,8 @@ public:
 	void generateMask();
 	void printHomography();
 	void calculateErrorPair();
-	void calculateErrorSeamTest();
 	void calculateTranslation();
+	void detectText();
 	void pixelPadding();
 	void calculateIndividualImageBoundary();
 

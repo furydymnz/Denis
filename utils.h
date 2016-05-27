@@ -15,6 +15,7 @@
 #include <cv.h>
 #include "ipoint.h"
 #include "ErrorBundle.h"
+#include "TextDetector.h"
 #include <vector>
 using namespace cv;
 
@@ -41,8 +42,6 @@ inline int fRound(float flt)
 //! Find the maximum scale of transformed picture
 void findmaxima(int& maxX, int& maxY, int& minX, int& minY, Mat& image, Mat& warpMat);
 
-//! FUCK
-void blendImage(int type, Mat &image1, Mat &image2, Mat &imageResult, Mat &t_mask1, Mat &t_mask2, int dX, int dY);
 
 //!used for RANSAC
 void uniqueRandom(int **value, int pointAmount, int randomMax);
@@ -54,10 +53,9 @@ inline double DIS(double x1, double y1, double x2, double y2);
 
 void findIntersection(Mat& mask1, Mat& mask2, Mat& intersection);
 int findIntersectionPts(Point2i& pt1, Point2i& pt2, Mat& intersection, Mat& andMasks);
-Mat verticalBlending(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2);
-Mat horizontalBlending(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, int dY);
-ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, int imageCodeX = 0, int imageCodeY = 0);
-ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, int imageCodeX = 0, int imageCodeY = 0);
+ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, Mat textMask1, Mat textMask2, double scale);
+ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, Mat textMask1, Mat textMask2, double scale);
+void fixSeam(vector<Point2i> &seam, Point pt1, Point pt2, double scale, Mat andMask);
 void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& mask2, vector<Point2i>& seam);
 void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& mask2, vector<Point2i>& seam);
 #endif

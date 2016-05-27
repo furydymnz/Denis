@@ -158,68 +158,6 @@ void drawPoints(Mat &image, vector<Ipoint> &ipts)
 
 //-------------------------------------------------------
 
-void blendImage(int type,Mat &image1, Mat &image2, Mat &imageResult, Mat &t_mask1, Mat &t_mask2, int dX, int dY)
-{
-	int width = dX + image2.cols;
-	//int width = image1.cols + image2.cols;
-	int height = 0;
-	if (dY > 0)
-		height = dY + image2.rows;
-	else if (dY < 0)
-		height = -dY + image1.rows;
-	else
-		height = image1.rows > image2.rows ? image1.rows : image2.rows;
-
-	height = height < image2.rows ? image2.rows : height;
-	height = height < image1.rows ? image1.rows : height;
-	width = width < image2.cols ? image2.cols : width;
-	width = width < image1.cols ? image1.cols : width;
-
-	printf("Blending image...\n");
-	printf("blended (width, height) = (%d, %d)\n", width, height);
-	Mat result1(Size(width+2, height+2), CV_8UC3, cv::Scalar(0, 0, 0));
-	Mat result2(Size(width+2, height+2), CV_8UC3, cv::Scalar(0, 0, 0));
-	Mat mask1(Size(width+2, height+2), CV_8UC1, cv::Scalar(0));
-	Mat mask2(Size(width+2, height+2), CV_8UC1, cv::Scalar(0));
-	printf("mat declare done\n");
-	if (dY >= 0)
-	{
-		printf("dY >0\n");
-		image1.copyTo(result1(Rect(1, 1, image1.cols, image1.rows)));
-		t_mask1.copyTo(mask1(Rect(1, 1, image1.cols, image1.rows)));
-		printf("i1done\n");
-		image2.copyTo(result2(Rect(dX+1, dY+1, image2.cols, image2.rows)));
-		t_mask2.copyTo(mask2(Rect(dX+1, dY+1, image2.cols, image2.rows)));
-		printf("i2done\n");
-	}
-	else if (dY < 0)
-	{
-		printf("dY < 0\n");
-		image1.copyTo(result1(Rect(1, -dY+1, image1.cols, image1.rows)));
-		t_mask1.copyTo(mask1(Rect(1, -dY+1, image1.cols, image1.rows)));
-		printf("i1done\n");
-		image2.copyTo(result2(Rect(dX+1, 1, image2.cols, image2.rows)));
-		t_mask2.copyTo(mask2(Rect(dX+1, 1, image2.cols, image2.rows)));
-		printf("i2done\n");
-	}
-
-	imwrite("test/result1.jpg", result1);
-	imwrite("test/result2.jpg", result2);
-
-	//mask1 = mask1 > 100;
-	//mask2 = mask2 > 100;
-
-	imwrite("test/mask1.jpg", mask1);
-	imwrite("test/mask2.jpg", mask2);
-	if (type == TRANSVERSE){
-		imageResult = verticalBlending(result1, result2, mask1, mask2);
-		//imageResult = computeAlphaBlending(result1, result2, mask1, mask2);
-	}
-	else if (type == LONGITUDINAL)
-		imageResult = horizontalBlending(result1, result2, mask1, mask2, dY);
-		//imageResult = computeLongitudinalBlending(result1, result2, mask1, mask2, dY);
-}
-
 
 void findmaxima(int& maxX, int& maxY, int& minX, int& minY, Mat& image, Mat& warpMat){
 
@@ -416,14 +354,22 @@ void findIntersection(Mat& mask1, Mat& mask2, Mat& intersection)
 }
 double getDPError(int i, int j, Mat &errorMap, direction **dirMap)
 {
-	if (i < 0 || j < 0 || j > errorMap.cols || i > errorMap.rows || dirMap[i][j] == YO)
+	if (i < 0 || j < 0 || j >= errorMap.cols || i >= errorMap.rows || dirMap[i][j] == YO)
 		return -1;
 	return errorMap.at<double>(i, j);
 }
 
-void ComputeError(int i, int j, Mat &image1, Mat &image2, direction **dirMap, Mat &errorMap)
+void ComputeError(int i, int j, Mat &image1, Mat &image2, direction **dirMap, Mat &errorMap, Mat &textMask)
 {
-	double eCurrent = ComputeError(image1, image2, i, j);
+	double eCurrent;
+	if (textMask.at<unsigned char>(i, j) == 255)
+	{
+		eCurrent = 999;
+	}
+	else
+	{
+		eCurrent = ComputeError(image1, image2, i, j);
+	}
 	//TL T TR L R
 	double errors[5] = {getDPError(i-1, j-1, errorMap, dirMap),
 					getDPError(i-1, j, errorMap, dirMap),
@@ -474,225 +420,18 @@ void ComputeError(int i, int j, Mat &image1, Mat &image2, direction **dirMap, Ma
 
 }
 
-//verticalSeam
-Mat verticalBlending(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2)
+
+void ComputeHorizontalError(int i, int j, Mat &image1, Mat &image2, direction **dirMap, Mat &errorMap, Mat &textMask)
 {
-	// edited: find regions where no mask is set
-	// compute the region where no mask is set at all, to use those color values unblended
-	
-	//5-way DP seam finder
-	cv::Mat bothMasks = mask1 | mask2;
-	cv::Mat andMasks = mask1 & mask2;
-	cv::Mat noMask = 255 - bothMasks;
-	Mat xormask2 = mask2 ^ andMasks;
-	Mat xormask1 = mask1 ^ andMasks;
-	xormask1 = xormask1 > 0;
-	xormask2 = xormask2 > 0;
-	imwrite("test/xormaks1.jpg",xormask1);
-	imwrite("test/xormaks2.jpg",xormask2);
-	Mat errorMap(image1.size(), CV_64FC1);
-	Mat errorGraph(image1.size(), CV_8UC1);
-	// ------------------------------------------
-	double eTopLeft = 0, eTopRight = 0, eTop = 0, eLeft = 0, eRight = 0, eCurrent;
-	
-	double maxError = 0;
-	imwrite("test/andmask.jpg", andMasks);
-	Mat intersection;
-	findIntersection(mask1,mask2,intersection);
-	Point2i pt1, pt2;
-	findIntersectionPts(pt1,pt2,intersection, andMasks);
-
-	//DP
-	direction **dirMap;
-	dirMap = new direction * [image1.rows];
-	for(int i = 0;i < image1.rows;i++)
+	double eCurrent;
+	if (textMask.at<unsigned char>(i, j) == 255)
 	{
-		dirMap[i] = new direction [image1.cols];
-		for(int j = 0;j < image1.cols;j++)
-		{
-			dirMap[i][j] = YO;
-		}
+		eCurrent = 999;
 	}
-
-	for (int i = pt1.y; i <= pt2.y; i++)
+	else
 	{
-		/*
-			if( i == pt1.y )
-			{
-				for (int j = 0; j < errorMap.cols; j++)
-				{
-					if (andMasks.at<unsigned char>(i, j)==0)
-						continue;
-					errorMap.at<double>(i, j) = ComputeError(image1, image2, i, j);
-					dirMap[i][j] = CURRENT;
-				}
-			}
-			*/
-			if( i == pt1.y )
-			{
-				for (int j = 0; j < errorMap.cols; j++)
-				{
-					if (andMasks.at<unsigned char>(i, j)==0)
-						continue;
-					if(j == pt1.x)
-					{
-						errorMap.at<double>(i, j) = ComputeError(image1, image2, i, j);
-						dirMap[i][j] = CURRENT;
-					}else
-					{
-						ComputeError(i, j, image1, image2, dirMap, errorMap);
-					}
-				}
-				for(int j = errorMap.cols-1 ; j>=0 ; j--)
-				{
-					if (andMasks.at<unsigned char>(i, j)==0)
-						continue;
-					if(j == pt1.x)
-					{
-						errorMap.at<double>(i, j) = ComputeError(image1, image2, i, j);
-						dirMap[i][j] = CURRENT;
-					}else
-					{
-						ComputeError(i, j, image1, image2, dirMap, errorMap);
-					}
-				}
-			}
-			else
-			{
-				for(int j = 0 ; j<errorMap.cols ; j++)
-				{
-					if (andMasks.at<unsigned char>(i, j)==0)
-						continue;
-					ComputeError(i, j, image1, image2, dirMap, errorMap);
-				}
-				for(int j = errorMap.cols-1 ; j>=0 ; j--)
-				{
-					if (andMasks.at<unsigned char>(i, j)==0)
-						continue;
-					ComputeError(i, j, image1, image2, dirMap, errorMap);
-				}
-			}
+		eCurrent = ComputeError(image1, image2, i, j);
 	}
-	for (int i = pt1.y; i <= pt2.y; i++)
-	{
-		for (int j = 0; j < errorMap.cols; j++)
-			if(j+1<errorMap.cols && j>0
-				&& dirMap[i][j-1]==RIGHT && dirMap[i][j]==LEFT)
-			{
-				dirMap[i][j-1] = LEFT;
-				dirMap[i][j] = RIGHT;
-			}
-	}
-
-
-	//draw errorGraph
-	for(int i = pt1.y;i <= pt2.y;i++)
-	{
-		for(int j = 0;j < errorMap.cols;j++)
-		{
-			if (maxError < errorMap.at<double>(i, j))
-				maxError = errorMap.at<double>(i, j);
-		}
-	}
-	double scale = 255 / maxError;
-	for (int i = 0; i < errorGraph.rows; i++)
-	{
-		for (int r = 0; r < errorGraph.cols; r++)
-		{
-			if (andMasks.at<unsigned char>(i, r) == 0)
-				continue;
-			errorGraph.at<unsigned char>(i, r) =
-				(int)((255 / maxError)*
-				errorMap.at<double>(i, r));
-
-		}
-	}
-	imwrite("test/errorMap.jpg", errorGraph);
-
-	Mat errorSeam(image1.size(), CV_8UC3);
-	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
-	cvtColor(errorGraph, errorSeam, CV_GRAY2BGR);
-
-	double minError = errorMap.at<double>(pt2.y, pt2.x);
-	Point2i startpt = pt2;
-	/*
-	for(int x = 0;x < errorMap.cols;x++)
-	{
-		if(andMasks.at<unsigned char>(pt2.y, x) != 0 && dirMap[pt2.y][x] != YO)
-		{	
-			if(errorMap.at<double>(pt2.y, x) < minError)
-			{
-				minError = errorMap.at<double>(pt2.y, x);
-				startpt = Point2i(x, pt2.y);
-			}
-		}
-	}*/
-	vector<Point2i> seam;
-	seam.push_back(startpt);
-	int x = startpt.x, y = startpt.y;
-	while(1){
-		if(dirMap[y][x] == CURRENT || dirMap[y][x] == YO)
-			break;
-		switch(dirMap[y][x]){
-		case TOPLEFT:
-			x--;
-			y--;
-			break;
-		case TOP:
-			y--;
-			break;
-		case TOPRIGHT:
-			x++;
-			y--;
-			break;
-		case LEFT:
-			x--;
-			break;
-		case RIGHT:
-			x++;
-			break;
-		}
- 		//char c;
- 		//printf("x:%d y:%d\ndir:%d\n",x, y,dirMap[y][x]);
- 		//scanf("%c",&c);
-		seam.push_back(Point2i(x, y));
-		errorSeam.at<Vec3b>(y, x) = Vec3b(0, 0, 255);
-		seamMap.at<unsigned char>(y, x) = 255;
-	}
-
-	imwrite("test/errorSeam.jpg", errorSeam);
-	imwrite("test/seamMap.jpg", seamMap);
-
-	//blending
-	Mat blended(image1.size(), CV_8UC3, cv::Scalar(0, 0, 0));
-	for(int i = 0;i < blended.rows;i++)
-	{
-		bool passedSeam = false;
-		for(int j = 0;j < blended.cols;j++)
-		{
-			if(andMasks.at<unsigned char>(i, j) == 255)
-			{
-				if(seamMap.at<unsigned char>(i, j) == 255)
-					passedSeam = true;
-				if(!passedSeam)
-					blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
-				else
-					blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
-			}
-			else if(xormask1.at<unsigned char>(i, j)==255)
-				blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
-			else
-				blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
-
-		}
-	}
-
-	return blended;
-}
-
-void ComputeHorizontalError(int i, int j, Mat &image1, Mat &image2, direction **dirMap, Mat &errorMap)
-{
-	double eCurrent = ComputeError(image1, image2, i, j);
 	//TL T L BL B
 	double errors[5] = {getDPError(i-1, j-1, errorMap, dirMap),
 		getDPError(i-1, j, errorMap, dirMap),
@@ -738,246 +477,14 @@ void ComputeHorizontalError(int i, int j, Mat &image1, Mat &image2, direction **
 		default:
 			dirMap[i][j]=CURRENT;
 		}
-		errorMap.at<double>(i, j) = eCurrent + minError;
+		if(eCurrent <= DBL_MAX)
+			errorMap.at<double>(i, j) = eCurrent + minError;
+		else
+			errorMap.at<double>(i, j) = DBL_MAX;
 	}
 
 }
 
-
-//horizontal seam
-Mat horizontalBlending(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, int dY)
-{
-	// edited: find regions where no mask is set
-	// compute the region where no mask is set at all, to use those color values unblended
-
-	//5-way DP seam finder
-	cv::Mat bothMasks = mask1 | mask2;
-	cv::Mat andMasks = mask1 & mask2;
-	cv::Mat noMask = 255 - bothMasks;
-	Mat xormask2 = mask2 ^ andMasks;
-	Mat xormask1 = mask1 ^ andMasks;
-	xormask1 = xormask1 > 0;
-	xormask2 = xormask2 > 0;
-	imwrite("test/xormaks1.jpg",xormask1);
-	imwrite("test/xormaks2.jpg",xormask2);
-	Mat &errorMap = Mat(image1.size(), CV_64FC1);
-	Mat errorGraph(image1.size(), CV_8UC1);
-	// ------------------------------------------
-	double eTopLeft = 0, eBottomLeft = 0, eTop = 0, eLeft = 0, eBottom = 0, eCurrent;
-
-	double maxError = 0;
-	imwrite("test/andmask.jpg", andMasks);
-	Mat intersection;
-	findIntersection(mask1,mask2,intersection);
-	Point2i pt1, pt2;
-	findIntersectionPts(pt1,pt2,intersection, andMasks);
-
-	//DP
-	direction **dirMap;
-	dirMap = new direction * [image1.rows];
-	for(int i = 0;i < image1.rows;i++)
-	{
-		dirMap[i] = new direction [image1.cols];
-		for(int j = 0;j < image1.cols;j++)
-		{
-			//YO is meaningless
-			dirMap[i][j] = YO;
-		}
-	}
-
-	for (int j = pt1.x; j <= pt2.x; j++)
-	{
-		if( j == pt1.x )
-		{
-			for (int i = 0; i < errorMap.rows; i++)
-			{
-				if (andMasks.at<unsigned char>(i, j)==0)
-					continue;
-				if(i == pt1.y)
-				{
-					errorMap.at<double>(i, j) = ComputeError(image1, image2, i, j);
-					dirMap[i][j] = CURRENT;
-				}
-				else
-				{
-					ComputeHorizontalError(i, j, image1, image2, dirMap, errorMap);
-				}
-			}
-			for(int i = errorMap.rows-1 ; i>=0 ; i--)
-			{
-				if (andMasks.at<unsigned char>(i, j)==0)
-					continue;
-				if(i == pt1.y)
-				{
-					errorMap.at<double>(i, j) = ComputeError(image1, image2, i, j);
-					dirMap[i][j] = CURRENT;
-				}
-				else
-				{
-					ComputeHorizontalError(i, j, image1, image2, dirMap, errorMap);
-				}
-			}
-		}
-		else 
-		{
-			for(int i = 0 ; i < errorMap.rows ; i++)
-			{
-				if (andMasks.at<unsigned char>(i, j)==0)
-					continue;
-				ComputeHorizontalError(i, j, image1, image2, dirMap, errorMap);
-			}
-			for(int i = errorMap.rows-1 ; i>=0 ; i--)
-			{
-				if (andMasks.at<unsigned char>(i, j)==0)
-					continue;
-				ComputeHorizontalError(i, j, image1, image2, dirMap, errorMap);
-			}
-		}
-
-	}
-	for (int j = pt1.x; j <= pt2.x; j++)
-	{
-		for (int i = 0; i < errorMap.rows; i++)
-			if(i+1<errorMap.rows && i>0
-				&& dirMap[i-1][j]==BOTTOM && dirMap[i][j]==TOP)
-			{
-				//may have some error
-				dirMap[i-1][j] = TOP;
-				dirMap[i][j] = BOTTOM;
-			}
-	}
-
-	//draw errorGraph
-	for(int j = pt1.x;j <= pt2.x;j++)
-	{
-		for(int i = 0;i < errorMap.rows;i++)
-		{
-			if (maxError < errorMap.at<double>(i, j))
-				maxError = errorMap.at<double>(i, j);
-		}
-	}
-	double scale = 255 / maxError;
-	for (int i = 0; i < errorGraph.rows; i++)
-	{
-		for (int r = 0; r < errorGraph.cols; r++)
-		{
-			if (andMasks.at<unsigned char>(i, r) == 0)
-				continue;
-			errorGraph.at<unsigned char>(i, r) =
-				(int)((255 / maxError)*
-				errorMap.at<double>(i, r));
-
-		}
-	}
-	imwrite("test/errorMap.jpg", errorGraph);
-
-	Mat errorSeam(image1.size(), CV_8UC3);
-	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
-	cvtColor(errorGraph, errorSeam, CV_GRAY2BGR);
-
-	double minError = errorMap.at<double>(pt2.y, pt2.x);
-	Point2i startpt = pt2;
-	/*
-	for(int y = 0;y < errorMap.rows;y++)
-	{
-		if(andMasks.at<unsigned char>(y, pt2.x) != 0 && dirMap[y][pt2.x] != YO)
-		{	
-			if(errorMap.at<double>(y, pt2.x) < minError)
-			{
-				minError = errorMap.at<double>(y, pt2.x);
-				startpt = Point2i(pt2.x, y);
-			}
-		}
-	}*/
-	vector<Point2i> seam;
-	seam.push_back(startpt);
-	int x = startpt.x, y = startpt.y;
-	while(1){
-		if(dirMap[y][x] == CURRENT || dirMap[y][x] == YO)
-			break;
-		switch(dirMap[y][x]){
-		case TOPLEFT:
-			x--;
-			y--;
-			break;
-		case TOP:
-			y--;
-			break;
-		case LEFT:
-			x--;
-			break;
-		case BOTTOMLEFT:
-			x--;
-			y++;
-			break;
-		case BOTTOM:
-			y++;
-			break;
-		}
-		//char c;
-		//printf("x:%d y:%d\ndir:%d\n",x, y,dirMap[y][x]);
-		//scanf("%c",&c);
-		seam.push_back(Point2i(x, y));
-		errorSeam.at<Vec3b>(y, x) = Vec3b(0, 0, 255);
-		seamMap.at<unsigned char>(y, x) = 255;
-	}
-
-	imwrite("test/errorSeam.jpg", errorSeam);
-	imwrite("test/seamMap.jpg", seamMap);
-
-
-	//blending
-	Mat blended(image1.size(), CV_8UC3, cv::Scalar(0, 0, 0));
-
-	bool passedSeam = false;
-	if (dY >= 0)
-	{
-		printf("dY>=0\n");
-		for (int j = 0; j < blended.cols; j++){
-			passedSeam = false;
-			for (int i = 0; i < blended.rows; i++){
-				if(andMasks.at<unsigned char>(i, j) != 0)
-				{
-					if(seamMap.at<unsigned char>(i, j) != 0)
-						passedSeam = true;
-					if(!passedSeam)
-						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
-					else
-						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
-				}
-				else if (xormask1.at<unsigned char>(i, j) != 0)
-					blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
-				else
-					blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
-			}
-		}
-	}
-	else
-	{
-		printf("dY<0\n");
-		for (int j = 0; j < blended.cols; j++){
-			passedSeam = false;
-			for (int i = 0; i < blended.rows; i++){
-				if(andMasks.at<unsigned char>(i, j) == 255)
-				{
-					if(seamMap.at<unsigned char>(i, j) == 255)
-						passedSeam = true;
-					if(!passedSeam)
-						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
-					else
-						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
-				}
-				else if (xormask2.at<unsigned char>(i, j) != 0)
-					blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
-				else
-					blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
-			}
-
-		}
-	}
-
-	return blended;
-}
 
 int findIntersectionPts(Point2i& pt1, Point2i& pt2, Mat& intersection, Mat& andMasks)
 {
@@ -1020,28 +527,67 @@ int findIntersectionPts(Point2i& pt1, Point2i& pt2, Mat& intersection, Mat& andM
 	return 0;
 }
 
-ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, int imageCodeX, int imageCodeY)
+ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, Mat textMask1, Mat textMask2, double scale)
 {
 	ErrorBundle errorBundle;
 	cv::Mat andMasks = mask1 & mask2;
-	Mat &errorMap = errorBundle.getErrorMap();
-	errorMap = Mat(image1.size(), CV_64FC1);
+	Mat errorMap;
+	Mat textMask = textMask1 | textMask2;
 	// ------------------------------------------
 	double eTopLeft = 0, eBottomLeft = 0, eTop = 0, eLeft = 0, eBottom = 0, eCurrent;
 
 	double maxError = 0;
-	//imwrite("test/andmask.jpg", andMasks);
+
 	Mat intersection;
 	findIntersection(mask1, mask2, intersection);
 	Point2i pt1, pt2;
 	findIntersectionPts(pt1, pt2, intersection, andMasks);
 
+	Point hd_pt1(pt1.x, pt1.y);
+	Point hd_pt2(pt2.x, pt2.y);
+	Mat hd_andMask;
+
+	Mat tempMask1;
+	Mat tempMask2;
+	Mat tempImage1;
+	Mat tempImage2;
+	Mat tempTextMask1;
+	Mat tempTextMask2;
+	if (scale != 1.0)
+	{
+		tempImage1 = image1.clone();
+		tempImage2 = image2.clone();
+		resize(mask1, tempMask1, Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(mask2, tempMask2, Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(image1, image1, Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(image2, image2, Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(textMask1, tempTextMask1, Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(textMask2, tempTextMask2, Size(0, 0), scale, scale, INTER_LINEAR);
+
+		textMask = tempTextMask1 | tempTextMask2;
+		andMasks = tempMask1 & tempMask2;
+		findIntersection(tempMask1, tempMask2, intersection);
+		findIntersectionPts(pt1, pt2, intersection, andMasks);
+
+		hd_andMask = mask1 & mask2;
+	}
+	imwrite("YO//textMask.jpg", textMask);
+	errorMap = Mat(image1.size(), CV_64FC1);
+
+	errorBundle.setErrorMap(errorMap);
+	
 	//let pt1 be the leftmost point
 	Point2i temp;
 	if (pt1.x > pt2.x) {
 		temp = pt1;
 		pt1 = pt2;
 		pt2 = temp;
+	}
+
+	if (hd_pt1.x > hd_pt2.x) {
+		temp = hd_pt1;
+		hd_pt1 = hd_pt2;
+		hd_pt2 = temp;
 	}
 
 
@@ -1072,7 +618,7 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 					dirMap[i][j] = CURRENT;
 				}
 				else
-					ComputeHorizontalError(i, j, image1, image2, dirMap, errorMap);
+					ComputeHorizontalError(i, j, image1, image2, dirMap, errorMap, textMask);
 			}
 			for (int i = errorMap.rows - 1; i >= 0; i--)
 			{
@@ -1084,7 +630,7 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 					dirMap[i][j] = CURRENT;
 				}
 				else
-					ComputeHorizontalError(i, j, image1, image2, dirMap, errorMap);
+					ComputeHorizontalError(i, j, image1, image2, dirMap, errorMap, textMask);
 			}
 		}
 		else
@@ -1093,13 +639,13 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 			{
 				if (andMasks.at<unsigned char>(i, j) == 0)
 					continue;
-				ComputeHorizontalError(i, j, image1, image2, dirMap, errorMap);
+				ComputeHorizontalError(i, j, image1, image2, dirMap, errorMap, textMask);
 			}
 			for (int i = errorMap.rows - 1; i >= 0; i--)
 			{
 				if (andMasks.at<unsigned char>(i, j) == 0)
 					continue;
-				ComputeHorizontalError(i, j, image1, image2, dirMap, errorMap);
+				ComputeHorizontalError(i, j, image1, image2, dirMap, errorMap, textMask);
 			}
 		}
 
@@ -1115,7 +661,7 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 				dirMap[i][j] = BOTTOM;
 			}
 	}
-
+	
 	double minError = errorMap.at<double>(pt2.y, pt2.x);
 	Point2i startpt = pt2;
 	vector<Point2i> &seam = errorBundle.getpath();
@@ -1148,12 +694,24 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 		//errorSeam.at<Vec3b>(y, x) = Vec3b(0, 0, 255);
 		//seamMap.at<unsigned char>(y, x) = 255;
 	}
-	/*
-	sprintf(a, "YO/errorSeam_%d_%d.jpg", imageCodeX, imageCodeY);
-	imwrite(a, errorSeam);
-	sprintf(a, "YO/seamMap_%d_%d.jpg", imageCodeX, imageCodeY);
+/*
+	char a[100];
+	static int c = 0;
+	sprintf(a, "%d.jpg", c++);
+	Mat seamMap(image1.size(), CV_8UC1,Scalar(0));
+	for (int i = 0; i < seam.size(); i++)
+		seamMap.at<unsigned char>(seam[i]) = 255;
 	imwrite(a, seamMap);
 	*/
+	if (scale != 1.0)
+	{
+		fixSeam(seam, hd_pt1, hd_pt2, scale, hd_andMask);
+		image1 = tempImage1.clone();
+		image2 = tempImage2.clone();
+	}
+
+
+
 	andMasks.release();
 	intersection.release();
 	errorMap.release();
@@ -1163,7 +721,7 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 	return errorBundle;
 }
 
-ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, int imageCodeX, int imageCodeY)
+ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, Mat textMask1, Mat textMask2, double scale)
 {
 	// edited: find regions where no mask is set
 	// compute the region where no mask is set at all, to use those color values unblended
@@ -1171,9 +729,9 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 	//5-way DP seam finder
 	ErrorBundle errorBundle;
 	cv::Mat andMasks = mask1 & mask2;
-	Mat errorMap(image1.size(), CV_64FC1);
+	Mat errorMap;
 	Mat errorGraph(image1.size(), CV_8UC1);
-	imwrite("YO/andMask.jpg", andMasks);
+	Mat textMask = textMask1 | textMask2;
 	// ------------------------------------------
 	double eTopLeft = 0, eTopRight = 0, eTop = 0, eLeft = 0, eRight = 0, eCurrent;
 
@@ -1183,12 +741,51 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 	Point2i pt1, pt2;
 	findIntersectionPts(pt1, pt2, intersection, andMasks);
 
+	Point hd_pt1(pt1.x, pt1.y);
+	Point hd_pt2(pt2.x, pt2.y);
+	Mat hd_andMask;
+
+	Mat tempMask1;
+	Mat tempMask2;
+	Mat tempImage1;
+	Mat tempImage2;
+	Mat tempTextMask1;
+	Mat tempTextMask2;
+	if (scale != 1.0)
+	{
+		tempImage1 = image1.clone();
+		tempImage2 = image2.clone();
+		resize(mask1, tempMask1, Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(mask2, tempMask2, Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(image1, image1, Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(image2, image2, Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(textMask1, tempTextMask1, Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(textMask2, tempTextMask2, Size(0, 0), scale, scale, INTER_LINEAR);
+
+		textMask = tempTextMask1 | tempTextMask2;
+		andMasks = tempMask1 & tempMask2;
+		findIntersection(tempMask1, tempMask2, intersection);
+		findIntersectionPts(pt1, pt2, intersection, andMasks);
+
+		hd_andMask = mask1 & mask2;
+	}
+	imwrite("YO//textMask.jpg", textMask);
+	errorMap = Mat(image1.size(), CV_64FC1);
+
+	errorBundle.setErrorMap(errorMap);
+
 	//let pt1 be the leftmost point
 	Point2i temp;
 	if (pt1.y > pt2.y) {
 		temp = pt1;
 		pt1 = pt2;
 		pt2 = temp;
+	}
+
+	if (hd_pt1.y > hd_pt2.y) {
+		temp = hd_pt1;
+		hd_pt1 = hd_pt2;
+		hd_pt2 = temp;
 	}
 
 	//DP
@@ -1215,7 +812,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 					dirMap[i][j] = CURRENT;
 				}
 				else
-					ComputeError(i, j, image1, image2, dirMap, errorMap);
+					ComputeError(i, j, image1, image2, dirMap, errorMap, textMask);
 			}
 			for (int j = errorMap.cols - 1; j >= 0; j--)
 			{
@@ -1227,7 +824,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 					dirMap[i][j] = CURRENT;
 				}
 				else
-					ComputeError(i, j, image1, image2, dirMap, errorMap);
+					ComputeError(i, j, image1, image2, dirMap, errorMap, textMask);
 			}
 		}
 		else
@@ -1236,13 +833,13 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 			{
 				if (andMasks.at<unsigned char>(i, j) == 0)
 					continue;
-				ComputeError(i, j, image1, image2, dirMap, errorMap);
+				ComputeError(i, j, image1, image2, dirMap, errorMap, textMask);
 			}
 			for (int j = errorMap.cols - 1; j >= 0; j--)
 			{
 				if (andMasks.at<unsigned char>(i, j) == 0)
 					continue;
-				ComputeError(i, j, image1, image2, dirMap, errorMap);
+				ComputeError(i, j, image1, image2, dirMap, errorMap, textMask);
 			}
 		}
 	}
@@ -1256,36 +853,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 				dirMap[i][j] = RIGHT;
 			}
 	}
-	/*
-	//draw errorGraph
-	for (int i = pt1.y; i <= pt2.y; i++)
-	{
-		for (int j = 0; j < errorMap.cols; j++)
-		{
-			if (maxError < errorMap.at<double>(i, j))
-				maxError = errorMap.at<double>(i, j);
-		}
-	}
-	double scale = 255 / maxError;
-	for (int i = 0; i < errorGraph.rows; i++)
-	{
-		for (int r = 0; r < errorGraph.cols; r++)
-		{
-			if (andMasks.at<unsigned char>(i, r) == 0)
-				continue;
-			errorGraph.at<unsigned char>(i, r) =
-				(int)((255 / maxError)*
-					errorMap.at<double>(i, r));
-		}
-	}
-	char a[100];
-	sprintf(a, "YO/errorMap_%d_%d.jpg", imageCodeX, imageCodeY);
-	imwrite(a, errorGraph);
-
-	Mat errorSeam(image1.size(), CV_8UC3);
-	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
-	cvtColor(errorGraph, errorSeam, CV_GRAY2BGR);
-	*/
+	
 	double minError = errorMap.at<double>(pt2.y, pt2.x);
 	Point2i startpt = pt2;
 	vector<Point2i> &seam = errorBundle.getpath();
@@ -1319,11 +887,22 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 		//errorSeam.at<Vec3b>(y, x) = Vec3b(0, 0, 255);
 		//seamMap.at<unsigned char>(y, x) = 255;
 	}
-	//printf("~~~%d\n", seam.size());
-	//sprintf(a, "YO/errorSeam_%d_%d.jpg", imageCodeX, imageCodeY);
-	//imwrite(a, errorSeam);
-	//sprintf(a, "YO/seamMap_%d_%d.jpg", imageCodeX, imageCodeY);
-	//imwrite(a, seamMap);
+	/*
+	char a[100];
+	static int c = 0;
+	sprintf(a, "%d.jpg", c++);
+	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
+	for (int i = 0; i < seam.size(); i++)
+		seamMap.at<unsigned char>(seam[i]) = 255;
+	imwrite(a, seamMap);
+	*/
+	if (scale != 1.0)
+	{
+		fixSeam(seam, hd_pt1, hd_pt2, scale, hd_andMask);
+		image1 = tempImage1.clone();
+		image2 = tempImage2.clone();
+	}
+
 
 	andMasks.release();
 	intersection.release();
@@ -1335,18 +914,130 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 	return errorBundle;
 }
 
+inline bool checkBoundry(int width, int height, int x, int y) {
+	return (x >= 0 && x < width && y >= 0 && y < height);
+}
+
+void fixSeam(vector<Point2i> &seam, Point pt1, Point pt2, double scale, Mat andMask)
+{
+	vector<Point2i> fixedSeam;
+	Point currentPoint(pt2.x, pt2.y);
+	Point nextPoint(seam[0].x / scale, seam[0].y / scale);
+	int dx, dy, index = 1;
+
+	fixedSeam.push_back(currentPoint);
+	while (index < seam.size())
+	{
+		if (andMask.at<unsigned char>(nextPoint) != 255) {
+			int x, y;
+			int i = 1;
+			x = nextPoint.x;
+			y = nextPoint.y;
+			while (true) {
+				if (checkBoundry(andMask.cols,andMask.rows, y + i, x) && andMask.at<unsigned char>(y + i, x) == 255) {
+					nextPoint.y = y + i;
+					break;
+				}
+				if (checkBoundry(andMask.cols, andMask.rows, y - i, x) && andMask.at<unsigned char>(y - i, x) == 255) {
+					nextPoint.y = y - i;
+					break;
+				}
+				if (checkBoundry(andMask.cols, andMask.rows, y, x + i) && andMask.at<unsigned char>(y, x + i) == 255) {
+					nextPoint.x = x + i;
+					break;
+				}
+				if (checkBoundry(andMask.cols, andMask.rows, y, x - i) && andMask.at<unsigned char>(y, x - i) == 255) {
+					nextPoint.x = x - i;
+					break;
+				}
+				i++;
+			}
+		}
+
+		dx = (int)ceil(nextPoint.x - currentPoint.x);
+		dy = (int)ceil(nextPoint.y - currentPoint.y);
+
+		while (dx != 0 || dy != 0)
+		{
+			if (dx < 0) {
+				currentPoint.x--;
+				dx++;
+			}
+			else if (dx>0) {
+				currentPoint.x++;
+				dx--;
+			}
+			if (dy < 0) {
+				currentPoint.y--;
+				dy++;
+			}
+			else if (dy>0) {
+				currentPoint.y++;
+				dy--;
+			}
+			fixedSeam.push_back(currentPoint);
+		}
+		if (++index >= seam.size())
+			break;
+		nextPoint = Point(seam[index].x / scale, seam[index].y / scale);
+	}
+
+
+	dx = (int)ceil(pt1.x - currentPoint.x);
+	dy = (int)ceil(pt1.y - currentPoint.y);
+
+	while (dx != 0 || dy != 0)
+	{
+		if (dx < 0) {
+			currentPoint.x--;
+			dx++;
+		}
+		else if (dx>0) {
+			currentPoint.x++;
+			dx--;
+		}
+		if (dy < 0) {
+			currentPoint.y--;
+			dy++;
+		}
+		else if (dy>0) {
+			currentPoint.y++;
+			dy--;
+		}
+		fixedSeam.push_back(currentPoint);
+	}
+	printf("-------------WHAT-------------\n");
+	printf("pt1: %d %d\n", pt1.x, pt1.y);
+	printf("pt2: %d %d\n", pt2.x, pt2.y);
+
+	seam.clear();
+	for (int i = 0; i < fixedSeam.size(); i++){
+		seam.push_back(fixedSeam[i]);
+	}
+}
+
 void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& mask2, vector<Point2i>& seam)
 {
+	//TODO seam walking on the edge of andmask
 	cv::Mat andMasks = mask1 & mask2;
 	Mat xormask1 = mask1 ^ andMasks;
 	Mat xormask2 = mask2 ^ andMasks;
 	xormask1 = xormask1 > 0;
 	xormask2 = xormask2 > 0;
 	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
+
+	image1.copyTo(blended, xormask1);
+	image2.copyTo(blended, xormask2);
+
 	for (int i = 0; i < seam.size(); i++)
 	{
 		seamMap.at<unsigned char>(seam[i]) = 255;
 	}
+	char a[100];
+	static int c = 0;
+	sprintf(a, "YO/seam%d.jpg", c++);
+	imwrite(a, seamMap);
+
 	bool passedSeam;
 	bool image1Left;
 	
@@ -1389,11 +1080,6 @@ void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& m
 					else
 						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
 				}
-				else if (xormask1.at<unsigned char>(i, j) != 0)
-					blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
-				else
-					blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
-
 			}
 		}
 	}
@@ -1412,10 +1098,6 @@ void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& m
 					else
 						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
 				}
-				else if (xormask2.at<unsigned char>(i, j) != 0)
-					blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
-				else
-					blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
 			}
 
 		}
@@ -1428,6 +1110,8 @@ void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& m
 
 void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& mask2, vector<Point2i>& seam)
 {
+	//TODO seam walking on the edge of andmask
+
 	cv::Mat andMasks = mask1 & mask2;
 	Mat xormask1 = mask1 ^ andMasks;
 	Mat xormask2 = mask2 ^ andMasks;
@@ -1435,10 +1119,20 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 	xormask2 = xormask2 > 0;
 	andMasks = andMasks > 0;
 	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
+
+	image1.copyTo(blended, xormask1);
+	image2.copyTo(blended, xormask2);
+
+
 	for (int i = 0; i < seam.size(); i++)
 	{
 		seamMap.at<unsigned char>(seam[i]) = 255;
 	}
+
+	char a[100];
+	static int c = 0;
+	sprintf(a, "YO/seam%d.jpg", c++);
+	imwrite(a, seamMap);
 
 	bool image1Above;
 	bool isSet = false;
@@ -1462,7 +1156,6 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 		if (isSet)
 			break;
 	}
-
 	bool passedSeam;
 	if (image1Above)
 	{
@@ -1474,15 +1167,14 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 				{
 					if (seamMap.at<unsigned char>(i, j) == 255)
 						passedSeam = true;
+
 					if (!passedSeam)
 						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
+						//blended.at<Vec3b>(i, j) = temp.at<Vec3b>(0, 0);
 					else
 						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+						//blended.at<Vec3b>(i, j) = temp.at<Vec3b>(0, 0);
 				}
-				else if (xormask1.at<unsigned char>(i, j) != 0)
-					blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
-				else
-					blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
 			}
 		}
 	}
@@ -1498,15 +1190,13 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 						passedSeam = true;
 					if (!passedSeam)
 						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+						//blended.at<Vec3b>(i, j) = temp.at<Vec3b>(0, 0);
 					else
 						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
+						//blended.at<Vec3b>(i, j) = temp.at<Vec3b>(0, 0);
 				}
-				else if (xormask2.at<unsigned char>(i, j) != 0)
-					blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
-				else
-					blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
-			}
 
+			}
 		}
 	}
 
