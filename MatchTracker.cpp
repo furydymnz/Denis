@@ -4,7 +4,7 @@
 #include <opencv2/opencv.hpp>
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
-
+//#define DEBUG
 
 MatchTracker::MatchTracker(int size, double scale)
 {
@@ -92,9 +92,11 @@ void MatchTracker::assignHomographyToImage()
 	for (int i = 0; i < size; i++)
 	{
 		if (images[i]->isEmpty()) continue;
+		/*
 		printf("assignHomographyToImage: pivotIndex:%d, pairHomographysize:%d \n", pivotIndex, pairHomography.size());
 		printf("pairHomography[i].size():%d \n",  pairHomography[i].size());
 		printf("(%d, %d)", i, pivotIndex);
+		*/
 		if (((pairHomography[i][pivotIndex])).at<double>(0, 0) != -1)
 		{
 			(images[i])->assignHomography((pairHomography[i][pivotIndex]));
@@ -278,9 +280,11 @@ void MatchTracker::calculateErrorPair()
 			andMask.release();
 			image2.release();
 			mask2.release();
+			textMask2.release();
 		}
 		image1.release();
 		mask1.release();
+		textMask1.release();
 	}
 }
 
@@ -303,42 +307,39 @@ Mat MatchTracker::blending()
 	}
 	
 	Mat orMask, andMask;
+#ifdef DEBUG
 	Mat textMask;
-	vector<Point2i> seam;
-	for (int i = 0; i < blendingOrder[minErrorIndex].size() - 1; i++) {
+	vector<vector<Point2i> > allTheSeams;
+#endif // DEBUG
+	for (int i = 0; i < blendingOrder[minErrorIndex].size() - 1; i++)
+	{
+		pair<Point2i, Point2i> pts;
+		int j = blendingOrder[minErrorIndex][i];
+		int k = blendingOrder[minErrorIndex][i + 1];
+		Mat mask2;
+		warpPerspective(getImage(k)->getMask(), mask2, 
+			getImage(k)->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+		Mat mask1;
+		warpPerspective(getImage(j)->getMask(), mask1,
+			getImage(j)->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+		Mat image2;
+		warpPerspective(getImage(k)->getImage(), image2,
+			getImage(k)->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+		Mat image1;
+		warpPerspective(getImage(j)->getImage(), image1,
+			getImage(j)->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
 		Mat textMask1;
-		warpPerspective(getImage(blendingOrder[minErrorIndex][i])->getTextMask(), textMask1, getImage(blendingOrder[minErrorIndex][i])->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+		warpPerspective(getImage(j)->getTextMask(), textMask1, getImage(j)->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
 		Mat textMask2;
-		warpPerspective(getImage(blendingOrder[minErrorIndex][i + 1])->getTextMask(), textMask2, getImage(blendingOrder[minErrorIndex][i + 1])->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+		warpPerspective(getImage(k)->getTextMask(), textMask2, getImage(k)->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+#ifdef DEBUG
 		if (i == 0) {
-			textMask = textMask1;
+			textMask = textMask1 | textMask2;
 		}
 		else {
 			textMask = textMask | textMask2;
 		}
-	}
-	Mat seamMap;
-	cvtColor(textMask, seamMap, CV_GRAY2RGB);
-
-	for (int i = 0; i < blendingOrder[minErrorIndex].size() - 1; i++)
-	{
-		pair<Point2i, Point2i> pts;
-		Mat mask2;
-		warpPerspective(getImage(blendingOrder[minErrorIndex][i + 1])->getMask(), mask2, 
-			getImage(blendingOrder[minErrorIndex][i + 1])->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
-		Mat mask1;
-		warpPerspective(getImage(blendingOrder[minErrorIndex][i])->getMask(), mask1,
-			getImage(blendingOrder[minErrorIndex][i])->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
-		Mat image2;
-		warpPerspective(getImage(blendingOrder[minErrorIndex][i + 1])->getImage(), image2,
-			getImage(blendingOrder[minErrorIndex][i + 1])->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
-		Mat image1;
-		warpPerspective(getImage(blendingOrder[minErrorIndex][i])->getImage(), image1,
-			getImage(blendingOrder[minErrorIndex][i])->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
-		Mat textMask1;
-		warpPerspective(getImage(blendingOrder[minErrorIndex][i])->getTextMask(), textMask1, getImage(blendingOrder[minErrorIndex][i])->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
-		Mat textMask2;
-		warpPerspective(getImage(blendingOrder[minErrorIndex][i + 1])->getTextMask(), textMask2, getImage(blendingOrder[minErrorIndex][i + 1])->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+#endif // DEBUG
 		if (i == 0) 
 		{
 			blended = image1.clone();
@@ -347,26 +348,22 @@ Mat MatchTracker::blending()
 			if (abs(pts.first.x - pts.second.x) > abs(pts.first.y - pts.second.y))
 			{
 				horizontalBlending(blended, blended, image2,
-					mask1, mask2, getPairSeam(blendingOrder[minErrorIndex][i], blendingOrder[minErrorIndex][i + 1]));
+					mask1, mask2, getPairSeam(j, k));
 			}
 			else
 			{
 				verticalBlending(blended, blended, image2,
-					mask1, mask2, getPairSeam(blendingOrder[minErrorIndex][i], blendingOrder[minErrorIndex][i + 1]));
+					mask1, mask2, getPairSeam(j, k));
 			}
-			seam = getPairSeam(blendingOrder[minErrorIndex][i], blendingOrder[minErrorIndex][i + 1]);
-			for (int k = 0; k < seam.size(); k++) {
-				seamMap.at<Vec3b>(seam[k]) = Vec3b(0, 0, 255);
-			}
+#ifdef DEBUG
+			allTheSeams.push_back(getPairSeam(j, k));
+#endif // DEBUG
+
 		}
 		else
 		{
 			mask1 = orMask;
-
 			andMask = mask1 & mask2;
-
-			int j = blendingOrder[minErrorIndex][i];
-			int k = blendingOrder[minErrorIndex][i + 1];
 
 			Mat intersection;
 			ErrorBundle errorBundle;
@@ -381,11 +378,6 @@ Mat MatchTracker::blending()
 					textMask1, textMask2, scale);
 				horizontalBlending(blended, blended, image2,
 					mask1, mask2, errorBundle.getpath());
-
-				vector<Point2i> &seam = errorBundle.getpath();
-				for (int k = 0; k < seam.size(); k++) {
-					seamMap.at<Vec3b>(seam[k]) = Vec3b(0, 0, 255);
-				}
 			}
 			else
 			{
@@ -394,14 +386,11 @@ Mat MatchTracker::blending()
 					textMask1, textMask2, scale);
 				verticalBlending(blended, blended, image2,
 					mask1, mask2, errorBundle.getpath());
-
-				vector<Point2i> &seam = errorBundle.getpath();
-				for (int k = 0; k < seam.size(); k++) {
-					seamMap.at<Vec3b>(seam[k]) = Vec3b(0, 0, 255);
-				}
 			}
+#ifdef DEBUG
+			allTheSeams.push_back(errorBundle.getpath());
+#endif // DEBUG
 			intersection.release();
-
 		}
 		orMask = mask1 | mask2;
 		andMask.release();
@@ -409,10 +398,23 @@ Mat MatchTracker::blending()
 		mask2.release();
 		image2.release();
 		image1.release();
-		imwrite("text.jpg", seamMap);
-		//orMask = orMask > 0;
-
+		textMask1.release();
+		textMask2.release();
+		getImage(j)->release();
 	}
+#ifdef DEBUG
+	Mat seamMap;
+	imwrite("YO//textMask.jpg", textMask);
+	cvtColor(textMask, seamMap, CV_GRAY2RGB);
+	for (int i = 0; i < allTheSeams.size(); i++)
+	{
+		for (int r = 0; r < allTheSeams[i].size(); r++)
+		{
+			seamMap.at<Vec3b>(allTheSeams[i][r]) = Vec3b(0, 255, 255);
+		}
+	}
+	imwrite("YO//seamMap.jpg", seamMap);
+#endif // DEBUG
 	return  blended;
 }
 
@@ -426,75 +428,7 @@ void MatchTracker::calculateIndividualImageBoundary()
 
 }
 
-/*
-Mat MatchTracker::blending()
-{
-	Mat blended;
-	pair<int, int> minErrorIndex;
-	double minError = DBL_MAX, tempError;
-
-	//find the least error in errorPair
-	for (int i = 0; i < size - 1; i++)
-	{
-		for (int j = i + 1; j < size; j++)
-		{
-			tempError = getPairError(i, j);
-			if (tempError != -1)
-			{
-				if (tempError < minError)
-				{
-					minError = tempError;
-					minErrorIndex.first = i;
-					minErrorIndex.second = j;
-				}
-			}
-		}
-	}
-
-	Mat orMask;
-	for (int i = 0; i < blendingOrder[minErrorIndex].size() - 1; i++)
-	{
-		Mat& mask2 = getImage(blendingOrder[minErrorIndex][i + 1])->getMask();
-		Mat& mask1 = getImage(blendingOrder[minErrorIndex][i])->getMask();
-		if (i == 0)
-		{
-			blended = getImage(blendingOrder[minErrorIndex][i])->getImage();
-		}
-		else
-		{
-			mask1 = orMask;
-		}
-		orMask = mask1 | mask2;
-		orMask = orMask > 0;
-
-		pair<Point2i, Point2i> pts;
-		pts = getPairInteresection(blendingOrder[minErrorIndex][i], blendingOrder[minErrorIndex][i + 1]);
-		if (abs(pts.first.x - pts.second.x) > abs(pts.first.y - pts.second.y))
-		{
-			horizontalBlending(blended, blended, getImage(blendingOrder[minErrorIndex][i + 1])->getImage(),
-				mask1, mask2, getPairSeam(blendingOrder[minErrorIndex][i], blendingOrder[minErrorIndex][i + 1]));
-		}
-		else
-		{
-			verticalBlending(blended, blended, getImage(blendingOrder[minErrorIndex][i + 1])->getImage(),
-				mask1, mask2, getPairSeam(blendingOrder[minErrorIndex][i], blendingOrder[minErrorIndex][i + 1]));
-		}
-	}
-	orMask.release();
-	return  blended;
-}
-*/
 
 void MatchTracker::fixHomography()
 {
-	/*
-	Mat h = Mat::eye(3, 3, CV_8UC1);
-	h.row(0).col(2) = -minX;
-	h.row(1).col(2) = -minY;
-
-	for (int i = 0; i < size; i++)
-	{
-		images[i]->assignHomography(images[i]->getHomography())
-	}
-	*/
 }

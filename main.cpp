@@ -1,5 +1,4 @@
 
-#include "surflib.h"
 #include "utils.h"
 #include "RouteHandler.h"
 #include "MatchTracker.h"
@@ -78,16 +77,7 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	if (imageCount <= 1) return -1;
 	stop = clock();
 	printf("Time of LoadImages is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
-
-	
 	start = clock();
-
-	MatchTracker matchTracker(imageCount, scale);
-
-	for (int i = 0; i < vImage.size(); i++)
-	{
-		matchTracker.pushImage(new BaseImage(vString[i]));
-	}
 
 	//Find surf descriptions
 	vector<Mat> descriptorsList;
@@ -115,6 +105,15 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 
 	start = clock();
 
+	MatchTracker matchTracker(imageCount, scale);
+	for (int i = 0; i < vImage.size(); i++)
+	{
+		matchTracker.pushImage(new BaseImage(vString[i]));
+		vImage[i].release();
+	}
+	vImage.clear();
+	vString.clear();
+
 	FlannBasedMatcher matcher;
 	for (int i = 0; i < imageCount - 1; i++) {
 		for (int j = i + 1; j < imageCount; j++) {
@@ -139,13 +138,13 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 			printf("getMatches %d %d %d\n", i, j, fpNum);
 		}
 	}
-	vImage.clear();
+	
+	
 	printf("surfDetDes\n");
+	
 
 	stop = clock();
 	printf("Time of getMatches is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
-
-	printf("\n");
 
 	start = clock();
 	matchTracker.calculatePairConnection();
@@ -168,17 +167,6 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 			printf("%20.8lf", (matchTracker.getHomographyPair(0, 0)).at<double>(r, p));
 		printf("\n");
 	}
-	for (int i = 0; i < imageCount; i++)
-	{
-		for (int j = 0; j < imageCount; j++)
-		{
-			if ((matchTracker.getHomographyPair(i, j)).at<double>(0, 0) != -1)
-				printf("1 ");
-			else
-				printf("0 ");
-		}
-		printf("\n");
-	}
 	
 	start = clock();
 	matchTracker.assignHomographyToImage();
@@ -190,7 +178,6 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	stop = clock();
 	printf("Time of calculateBoundary is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
 
-	//matchTracker.printHomography();
 	start = clock();
 	matchTracker.calculateTranslation();
 	stop = clock();
@@ -201,7 +188,6 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	matchTracker.generateMask();
 	stop = clock();
 	printf("Time of generateMask is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
-	//matchTracker.applyHomography();
 	
 	printf("===========detectText==============\n");
 	start = clock();

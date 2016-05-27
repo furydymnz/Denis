@@ -16,4 +16,12 @@ public:
 	vector<Point2i>& getpath() { return path; }
 	void setPathError(double pe) { pathError = pe; }
 	double getPathError() { return pathError; }
+	void release()
+	{
+		errorMap.release();
+	}
+	~ErrorBundle()
+	{
+		errorMap.release();
+	}
 };

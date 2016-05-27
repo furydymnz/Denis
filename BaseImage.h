@@ -35,6 +35,20 @@ public:
 		image = imread(imageStr);
 		empty = 0;
 	}
+	void release() 
+	{
+		image.release();
+		mask.release();
+		textMask.release();
+		homography.release();
+	}
+	~BaseImage()
+	{
+		image.release();
+		mask.release();
+		textMask.release();
+		homography.release();
+	}
 };
 
 

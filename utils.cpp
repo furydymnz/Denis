@@ -364,7 +364,7 @@ void ComputeError(int i, int j, Mat &image1, Mat &image2, direction **dirMap, Ma
 	double eCurrent;
 	if (textMask.at<unsigned char>(i, j) == 255)
 	{
-		eCurrent = 441;
+		eCurrent = 999;
 	}
 	else
 	{
@@ -426,7 +426,7 @@ void ComputeHorizontalError(int i, int j, Mat &image1, Mat &image2, direction **
 	double eCurrent;
 	if (textMask.at<unsigned char>(i, j) == 255)
 	{
-		eCurrent = 441;
+		eCurrent = 999;
 	}
 	else
 	{
@@ -477,7 +477,10 @@ void ComputeHorizontalError(int i, int j, Mat &image1, Mat &image2, direction **
 		default:
 			dirMap[i][j]=CURRENT;
 		}
-		errorMap.at<double>(i, j) = eCurrent + minError;
+		if(eCurrent <= DBL_MAX)
+			errorMap.at<double>(i, j) = eCurrent + minError;
+		else
+			errorMap.at<double>(i, j) = DBL_MAX;
 	}
 
 }
@@ -568,7 +571,7 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 
 		hd_andMask = mask1 & mask2;
 	}
-	
+	//imwrite("YO//textMask.jpg", textMask);
 	errorMap = Mat(image1.size(), CV_64FC1);
 
 	errorBundle.setErrorMap(errorMap);
@@ -766,6 +769,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 
 		hd_andMask = mask1 & mask2;
 	}
+	//imwrite("YO//textMask.jpg", textMask);
 	errorMap = Mat(image1.size(), CV_64FC1);
 
 	errorBundle.setErrorMap(errorMap);
@@ -839,8 +843,6 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 			}
 		}
 	}
-
-	
 	for (int i = pt1.y; i <= pt2.y; i++)
 	{
 		for (int j = 0; j < errorMap.cols; j++)
@@ -851,8 +853,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 				dirMap[i][j] = RIGHT;
 			}
 	}
-
-
+	
 	double minError = errorMap.at<double>(pt2.y, pt2.x);
 	Point2i startpt = pt2;
 	vector<Point2i> &seam = errorBundle.getpath();
@@ -886,17 +887,15 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 		//errorSeam.at<Vec3b>(y, x) = Vec3b(0, 0, 255);
 		//seamMap.at<unsigned char>(y, x) = 255;
 	}
-/*
-	Mat seamMap;
-	cvtColor(textMask,seamMap,CV_GRAY2RGB);
+	/*
 	char a[100];
 	static int c = 0;
 	sprintf(a, "%d.jpg", c++);
+	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
 	for (int i = 0; i < seam.size(); i++)
-		seamMap.at<Vec3b>(seam[i]) = Vec3b(255, 0, 0);
+		seamMap.at<unsigned char>(seam[i]) = 255;
 	imwrite(a, seamMap);
 	*/
-	
 	if (scale != 1.0)
 	{
 		fixSeam(seam, hd_pt1, hd_pt2, scale, hd_andMask);
@@ -929,32 +928,31 @@ void fixSeam(vector<Point2i> &seam, Point pt1, Point pt2, double scale, Mat andM
 	fixedSeam.push_back(currentPoint);
 	while (index < seam.size())
 	{
-		/*
 		if (andMask.at<unsigned char>(nextPoint) != 255) {
 			int x, y;
 			int i = 1;
 			x = nextPoint.x;
 			y = nextPoint.y;
 			while (true) {
-				if (andMask.at<unsigned char>(y + i, x) == 255) {
+				if (checkBoundry(andMask.cols,andMask.rows, y + i, x) && andMask.at<unsigned char>(y + i, x) == 255) {
 					nextPoint.y = y + i;
 					break;
 				}
-				if (andMask.at<unsigned char>(y - i, x) == 255) {
+				if (checkBoundry(andMask.cols, andMask.rows, y - i, x) && andMask.at<unsigned char>(y - i, x) == 255) {
 					nextPoint.y = y - i;
 					break;
 				}
-				if (andMask.at<unsigned char>(y, x + i) == 255) {
+				if (checkBoundry(andMask.cols, andMask.rows, y, x + i) && andMask.at<unsigned char>(y, x + i) == 255) {
 					nextPoint.x = x + i;
 					break;
 				}
-				if (andMask.at<unsigned char>(y, x - i) == 255) {
+				if (checkBoundry(andMask.cols, andMask.rows, y, x - i) && andMask.at<unsigned char>(y, x - i) == 255) {
 					nextPoint.x = x - i;
 					break;
 				}
 				i++;
 			}
-		}*/
+		}
 
 		dx = (int)ceil(nextPoint.x - currentPoint.x);
 		dy = (int)ceil(nextPoint.y - currentPoint.y);
@@ -1035,11 +1033,12 @@ void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& m
 	{
 		seamMap.at<unsigned char>(seam[i]) = 255;
 	}
+	/*
 	char a[100];
 	static int c = 0;
 	sprintf(a, "YO/seam%d.jpg", c++);
 	imwrite(a, seamMap);
-
+	*/
 	bool passedSeam;
 	bool image1Left;
 	
@@ -1130,12 +1129,12 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 	{
 		seamMap.at<unsigned char>(seam[i]) = 255;
 	}
-
+	/*
 	char a[100];
 	static int c = 0;
 	sprintf(a, "YO/seam%d.jpg", c++);
 	imwrite(a, seamMap);
-
+	*/
 	bool image1Above;
 	bool isSet = false;
 	for (int i = 0; i < blended.rows; i++)

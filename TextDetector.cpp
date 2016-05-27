@@ -3,7 +3,6 @@
 
 TextDetector::TextDetector()
 {
-	textMode = true;
 }
 
 
@@ -14,10 +13,9 @@ TextDetector::~TextDetector()
 Mat TextDetector::detect(Mat img)
 {
 	Mat textMask = Mat::zeros(img.size(), CV_8UC1);
-	if (!textMode)
-		return textMask;
-
 	Mat small;
+	const int HEIGHT_BOUND = img.size().height / 200;
+	const int WIDTH_BOUND = img.size().width / 200;
 	cvtColor(img, small, CV_BGR2GRAY);
 
 	// morphological gradient
@@ -47,9 +45,9 @@ Mat TextDetector::detect(Mat img)
 		// ratio of non-zero pixels in the filled region
 		double r = (double)countNonZero(maskROI) / (rect.width*rect.height);
 
-		if (r > .25 /* assume at least 45% of the area is filled if it contains text */
+		if (r > .5 /* assume at least 45% of the area is filled if it contains text */
 			&&
-			(rect.height > 8 && rect.width > 8) /* constraints on region size */
+			(rect.height > HEIGHT_BOUND && rect.width > WIDTH_BOUND) /* constraints on region size */
 												/* these two conditions alone are not very robust. better to use something
 												like the number of significant peaks in a horizontal projection as a third condition */
 			)
@@ -59,9 +57,4 @@ Mat TextDetector::detect(Mat img)
 	}
 
 	return textMask;
-}
-
-void TextDetector::setTextMode(bool mode)
-{
-	textMode = mode;
 }
