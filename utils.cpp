@@ -20,6 +20,7 @@
 #include <limits>
 #include "opencv2/imgproc/imgproc.hpp"
 
+
 using namespace std;
 using namespace cv;
 //-------------------------------------------------------
@@ -208,10 +209,10 @@ cv::Mat border(cv::Mat mask)
 
 	return border <100;
 }
-double ComputeError(const cv::Mat& image1, const cv::Mat& image2, int i, int c)
+double ComputeError(BaseImage *image1, BaseImage *image2, int i, int c)
 {
-	cv::Vec3b c1 = image1.at<Vec3b>(i, c);
-	cv::Vec3b c2 = image2.at<Vec3b>(i, c);
+	cv::Vec3b c1 = image1->at(i, c);
+	cv::Vec3b c2 = image2->at(i, c);
 	double b = (c1[0] - c2[0])*(c1[0] - c2[0]);
 	double g = (c1[1] - c2[1])*(c1[1] - c2[1]);
 	double r = (c1[2] - c2[2])*(c1[2] - c2[2]);
@@ -355,7 +356,7 @@ double getDPError(int i, int j, Mat &errorMap, direction **dirMap)
 	return errorMap.at<double>(i, j);
 }
 
-void ComputeError(int i, int j, Mat &image1, Mat &image2, direction **dirMap, Mat &errorMap, Mat &textMask)
+void ComputeError(int i, int j, BaseImage *image1, BaseImage *image2, direction **dirMap, Mat &errorMap, Mat &textMask)
 {
 	double eCurrent;
 	if (textMask.at<unsigned char>(i, j) == 255)
@@ -417,7 +418,7 @@ void ComputeError(int i, int j, Mat &image1, Mat &image2, direction **dirMap, Ma
 }
 
 
-void ComputeHorizontalError(int i, int j, Mat &image1, Mat &image2, direction **dirMap, Mat &errorMap, Mat &textMask)
+void ComputeHorizontalError(int i, int j, BaseImage *image1, BaseImage *image2, direction **dirMap, Mat &errorMap, Mat &textMask)
 {
 	double eCurrent;
 	if (textMask.at<unsigned char>(i, j) == 255)
@@ -523,7 +524,7 @@ int findIntersectionPts(Point2i& pt1, Point2i& pt2, Mat& intersection, Mat& andM
 	return 0;
 }
 
-ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, Mat textMask1, Mat textMask2, double scale)
+ErrorBundle horizontalErrorMap(BaseImage *image1, BaseImage *image2, Mat mask1, Mat mask2, Mat textMask1, Mat textMask2, double scale)
 {
 	ErrorBundle errorBundle;
 	cv::Mat andMasks = mask1 & mask2;
@@ -551,12 +552,12 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 	Mat tempTextMask2;
 	if (scale != 1.0)
 	{
-		tempImage1 = image1.clone();
-		tempImage2 = image2.clone();
+		tempImage1 = image1->getImage().clone();
+		tempImage2 = image2->getImage().clone();
 		resize(mask1, tempMask1, Size(0, 0), scale, scale, INTER_LINEAR);
 		resize(mask2, tempMask2, Size(0, 0), scale, scale, INTER_LINEAR);
-		resize(image1, image1, Size(0, 0), scale, scale, INTER_LINEAR);
-		resize(image2, image2, Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(image1->getImage(), image1->getImage(), Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(image2->getImage(), image2->getImage(), Size(0, 0), scale, scale, INTER_LINEAR);
 		resize(textMask1, tempTextMask1, Size(0, 0), scale, scale, INTER_LINEAR);
 		resize(textMask2, tempTextMask2, Size(0, 0), scale, scale, INTER_LINEAR);
 
@@ -566,9 +567,20 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 		findIntersectionPts(pt1, pt2, intersection, andMasks);
 
 		hd_andMask = mask1 & mask2;
+		image1->scale = scale;
+		image1->scaled = true;
 	}
 	//imwrite("YO//textMask.jpg", textMask);
-	errorMap = Mat(image1.size(), CV_64FC1);
+	
+	/*
+	int maxX = max(image1->maxX, image2->maxX);
+	int minX = min(image1->minX, image2->minX);
+	int maxY = max(image1->maxY, image2->maxY);
+	int minY = min(image1->minY, image2->minY);
+	int width = maxX - minX, height = maxY - minY;
+	Size newSize(width, height);
+	*/
+	errorMap = Mat(mask1.size(), CV_64FC1);
 
 	errorBundle.setErrorMap(errorMap);
 	
@@ -586,14 +598,13 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 		hd_pt2 = temp;
 	}
 
-
 	//DP
 	direction **dirMap;
-	dirMap = new direction *[image1.rows];
-	for (int i = 0; i < image1.rows; i++)
+	dirMap = new direction *[mask1.rows];
+	for (int i = 0; i < mask1.rows; i++)
 	{
-		dirMap[i] = new direction[image1.cols];
-		for (int j = 0; j < image1.cols; j++)
+		dirMap[i] = new direction[mask1.cols];
+		for (int j = 0; j < mask1.cols; j++)
 		{
 			//YO is meaningless
 			dirMap[i][j] = YO;
@@ -702,13 +713,12 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 	if (scale != 1.0)
 	{
 		fixSeam(seam, hd_pt1, hd_pt2, scale, hd_andMask);
-		image1 = tempImage1.clone();
-		image2 = tempImage2.clone();
+		image1->assignImage(tempImage1);
+		image2->assignImage(tempImage2);
+		image1->scaled = false;
 	}
 
 	hd_andMask.release();
-	tempImage1.release();
-	tempImage2.release();
 	tempTextMask1.release();
 	tempTextMask2.release();
 	tempMask1.release();
@@ -719,7 +729,7 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 	return errorBundle;
 }
 
-ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, Mat textMask1, Mat textMask2, double scale)
+ErrorBundle verticalErrorMap(BaseImage *image1, BaseImage *image2, Mat mask1, Mat mask2, Mat textMask1, Mat textMask2, double scale)
 {
 	// edited: find regions where no mask is set
 	// compute the region where no mask is set at all, to use those color values unblended
@@ -728,7 +738,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 	ErrorBundle errorBundle;
 	cv::Mat andMasks = mask1 & mask2;
 	Mat errorMap;
-	Mat errorGraph(image1.size(), CV_8UC1);
+	Mat errorGraph(mask1.size(), CV_8UC1);
 	Mat textMask = textMask1 | textMask2;
 	// ------------------------------------------
 	double eTopLeft = 0, eTopRight = 0, eTop = 0, eLeft = 0, eRight = 0, eCurrent;
@@ -751,12 +761,12 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 	Mat tempTextMask2;
 	if (scale != 1.0)
 	{
-		tempImage1 = image1.clone();
-		tempImage2 = image2.clone();
+		tempImage1 = image1->getImage().clone();
+		tempImage2 = image2->getImage().clone();
 		resize(mask1, tempMask1, Size(0, 0), scale, scale, INTER_LINEAR);
 		resize(mask2, tempMask2, Size(0, 0), scale, scale, INTER_LINEAR);
-		resize(image1, image1, Size(0, 0), scale, scale, INTER_LINEAR);
-		resize(image2, image2, Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(image1->getImage(), image1->getImage(), Size(0, 0), scale, scale, INTER_LINEAR);
+		resize(image2->getImage(), image2->getImage(), Size(0, 0), scale, scale, INTER_LINEAR);
 		resize(textMask1, tempTextMask1, Size(0, 0), scale, scale, INTER_LINEAR);
 		resize(textMask2, tempTextMask2, Size(0, 0), scale, scale, INTER_LINEAR);
 
@@ -766,9 +776,11 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 		findIntersectionPts(pt1, pt2, intersection, andMasks);
 
 		hd_andMask = mask1 & mask2;
+		image1->scale = scale;
+		image1->scaled = true;
 	}
 	//imwrite("YO//textMask.jpg", textMask);
-	errorMap = Mat(image1.size(), CV_64FC1);
+	errorMap = Mat(mask1.size(), CV_64FC1);
 
 	errorBundle.setErrorMap(errorMap);
 
@@ -788,11 +800,11 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 
 	//DP
 	direction **dirMap;
-	dirMap = new direction *[image1.rows];
-	for (int i = 0; i < image1.rows; i++)
+	dirMap = new direction *[mask1.rows];
+	for (int i = 0; i < mask1.rows; i++)
 	{
-		dirMap[i] = new direction[image1.cols];
-		for (int j = 0; j < image1.cols; j++)
+		dirMap[i] = new direction[mask1.cols];
+		for (int j = 0; j < mask1.cols; j++)
 			dirMap[i][j] = YO;
 	}
 
@@ -897,8 +909,9 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 	if (scale != 1.0)
 	{
 		fixSeam(seam, hd_pt1, hd_pt2, scale, hd_andMask);
-		image1 = tempImage1.clone();
-		image2 = tempImage2.clone();
+		image1->assignImage(tempImage1);
+		image2->assignImage(tempImage2);
+		image1->scaled = false;
 	}
 
 	hd_andMask.release();
@@ -1017,7 +1030,7 @@ void fixSeam(vector<Point2i> &seam, Point pt1, Point pt2, double scale, Mat andM
 	}
 }
 
-void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& mask2, vector<Point2i>& seam)
+void verticalBlending(Mat& blended, BaseImage *image1, BaseImage *image2, Mat& mask1, Mat& mask2, vector<Point2i>& seam)
 {
 	//TODO seam walking on the edge of andmask
 	cv::Mat andMasks = mask1 & mask2;
@@ -1025,10 +1038,12 @@ void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& m
 	Mat xormask2 = mask2 ^ andMasks;
 	xormask1 = xormask1 > 0;
 	xormask2 = xormask2 > 0;
-	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
+	Mat seamMap(mask1.size(), CV_8UC1, Scalar(0));
 
-	image1.copyTo(blended, xormask1);
-	image2.copyTo(blended, xormask2);
+	image1->getImage().copyTo(blended(Rect(image1->minX, image1->minY,
+		image1->getImage().cols, image1->getImage().rows)), xormask1);
+	image2->getImage().copyTo(blended(Rect(image2->minX, image2->minY,
+		image2->getImage().cols, image2->getImage().rows)), xormask2);
 
 	for (int i = 0; i < seam.size(); i++)
 	{
@@ -1078,9 +1093,9 @@ void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& m
 					if (seamMap.at<unsigned char>(i, j) == 255)
 						passedSeam = true;
 					if (!passedSeam)
-						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
+						blended.at<Vec3b>(i, j) = image1->at(i, j);
 					else
-						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+						blended.at<Vec3b>(i, j) = image2->at(i, j);
 				}
 			}
 		}
@@ -1096,9 +1111,9 @@ void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& m
 					if (seamMap.at<unsigned char>(i, j) == 255)
 						passedSeam = true;
 					if (!passedSeam)
-						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+						blended.at<Vec3b>(i, j) = image2->at(i, j);
 					else
-						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
+						blended.at<Vec3b>(i, j) = image1->at(i, j);
 				}
 			}
 
@@ -1110,7 +1125,7 @@ void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& m
 	seamMap.release();
 }
 
-void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& mask2, vector<Point2i>& seam)
+void horizontalBlending(Mat& blended, BaseImage *image1, BaseImage *image2, Mat& mask1, Mat& mask2, vector<Point2i>& seam)
 {
 	//TODO seam walking on the edge of andmask
 
@@ -1120,11 +1135,12 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 	xormask1 = xormask1 > 0;
 	xormask2 = xormask2 > 0;
 	andMasks = andMasks > 0;
-	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
+	Mat seamMap(mask1.size(), CV_8UC1, Scalar(0));
 
-	image1.copyTo(blended, xormask1);
-	image2.copyTo(blended, xormask2);
-
+	image1->getImage().copyTo(blended(Rect(image1->minX, image1->minY,
+		image1->getImage().cols, image1->getImage().rows)), xormask1);
+	image2->getImage().copyTo(blended(Rect(image2->minX, image2->minY,
+		image2->getImage().cols, image2->getImage().rows)), xormask2);
 
 	for (int i = 0; i < seam.size(); i++)
 	{
@@ -1171,10 +1187,10 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 						passedSeam = true;
 
 					if (!passedSeam)
-						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
+						blended.at<Vec3b>(i, j) = image1->at(i, j);
 						//blended.at<Vec3b>(i, j) = temp.at<Vec3b>(0, 0);
 					else
-						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+						blended.at<Vec3b>(i, j) = image2->at(i, j);
 						//blended.at<Vec3b>(i, j) = temp.at<Vec3b>(0, 0);
 				}
 			}
@@ -1191,10 +1207,10 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 					if (seamMap.at<unsigned char>(i, j) == 255)
 						passedSeam = true;
 					if (!passedSeam)
-						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+						blended.at<Vec3b>(i, j) = image2->at(i, j);
 						//blended.at<Vec3b>(i, j) = temp.at<Vec3b>(0, 0);
 					else
-						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
+						blended.at<Vec3b>(i, j) = image1->at(i, j);
 						//blended.at<Vec3b>(i, j) = temp.at<Vec3b>(0, 0);
 				}
 

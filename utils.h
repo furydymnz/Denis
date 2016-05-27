@@ -16,6 +16,7 @@
 #include "ipoint.h"
 #include "ErrorBundle.h"
 #include "TextDetector.h"
+#include "BaseImage.h"
 #include <vector>
 using namespace cv;
 
@@ -53,9 +54,9 @@ inline double DIS(double x1, double y1, double x2, double y2);
 
 void findIntersection(Mat& mask1, Mat& mask2, Mat& intersection);
 int findIntersectionPts(Point2i& pt1, Point2i& pt2, Mat& intersection, Mat& andMasks);
-ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, Mat textMask1, Mat textMask2, double scale);
-ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, Mat textMask1, Mat textMask2, double scale);
+ErrorBundle horizontalErrorMap(BaseImage *image1, BaseImage *image2, Mat mask1, Mat mask2, Mat textMask1, Mat textMask2, double scale);
+ErrorBundle verticalErrorMap(BaseImage *image1, BaseImage *image2, Mat mask1, Mat mask2, Mat textMask1, Mat textMask2, double scale);
 void fixSeam(vector<Point2i> &seam, Point pt1, Point pt2, double scale, Mat andMask);
-void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& mask2, vector<Point2i>& seam);
-void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& mask2, vector<Point2i>& seam);
+void verticalBlending(Mat& blended, BaseImage *image1, BaseImage *image2, Mat& mask1, Mat& mask2, vector<Point2i>& seam);
+void horizontalBlending(Mat& blended, BaseImage *image1, BaseImage *image2, Mat& mask1, Mat& mask2, vector<Point2i>& seam);
 #endif

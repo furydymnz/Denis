@@ -141,14 +141,17 @@ void MatchTracker::pixelPadding()
 		if (images[i]->isEmpty()) continue;
 		temp = Mat(imageSize, CV_8UC3, cv::Scalar(0, 0, 0));
 		images[i]->getImage().copyTo(temp(Rect(1, 1, images[i]->getImage().cols, images[i]->getImage().rows)));
+		images[i]->getImage().release();
 		images[i]->assignImage(temp);
 
 		temp = Mat(imageSize, CV_8UC1, cv::Scalar(0));
 		images[i]->getMask().copyTo(temp(Rect(1, 1, images[i]->getMask().cols, images[i]->getMask().rows)));
+		images[i]->getMask().release();
 		images[i]->assignMask(temp);
 
 		temp = Mat(imageSize, CV_8UC1, cv::Scalar(0));
 		images[i]->getTextMask().copyTo(temp(Rect(1, 1, images[i]->getTextMask().cols, images[i]->getTextMask().rows)));
+		images[i]->getTextMask().release();
 		images[i]->assignTextMask(temp);
 
 	}
@@ -169,7 +172,7 @@ void MatchTracker::applyHomography()
 		Size newSize = Size(width, height);
 		newHomo.at<double>(0, 2) = -images[i]->minX;
 		newHomo.at<double>(1, 2) = -images[i]->minY;
-		images[i]->assignHomography(images[i]->getHomography()*newHomo);
+		images[i]->assignImageHomography(images[i]->getHomography()*newHomo);
 		images[i]->size = newSize;
 		/*
 		warpPerspective(images[i]->getImage(), images[i]->getImage(), images[i]->getHomography(), newSize, INTER_NEAREST, BORDER_CONSTANT);
@@ -261,21 +264,21 @@ void MatchTracker::calculateErrorPair()
 	for (int i = 0; i < size - 1; i++)
 	{
 		Mat mask1;
-		warpPerspective(getImage(i)->getMask(), mask1, images[i]->getHomography(), images[i]->size, INTER_NEAREST, BORDER_CONSTANT);
-		Mat image1;
-		warpPerspective(getImage(i)->getImage(), image1, images[i]->getHomography(), images[i]->size, INTER_NEAREST, BORDER_CONSTANT);
+		warpPerspective(getImage(i)->getMask(), mask1, images[i]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
 		Mat textMask1;
-		warpPerspective(getImage(i)->getTextMask(), textMask1, images[i]->getHomography(), images[i]->size, INTER_NEAREST, BORDER_CONSTANT);
+		warpPerspective(getImage(i)->getTextMask(), textMask1, images[i]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+		BaseImage *image1 = getImage(i);
 		for (int r = i + 1; r < size; r++)
 		{
 			if (!getPairConnection(i, r))
 				continue;
 			Mat mask2;
-			warpPerspective(getImage(r)->getMask(), mask2, images[r]->getHomography(), images[r]->size, INTER_NEAREST, BORDER_CONSTANT);
-			Mat image2;
-			warpPerspective(getImage(r)->getImage(), image2, images[r]->getHomography(), images[r]->size, INTER_NEAREST, BORDER_CONSTANT);
+			warpPerspective(getImage(r)->getMask(), mask2, images[r]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
 			Mat textMask2;
-			warpPerspective(getImage(r)->getTextMask(), textMask2, images[r]->getHomography(), images[r]->size, INTER_NEAREST, BORDER_CONSTANT);
+			warpPerspective(getImage(r)->getTextMask(), textMask2, images[r]->getHomography(), imageSize, INTER_NEAREST, BORDER_CONSTANT);
+
+			BaseImage *image2 = image1 = getImage(r);
+			
 			andMask = mask1 & mask2;
 
 			Mat intersection;
