@@ -65,8 +65,6 @@ void Blender::findIntersection(Mat& mask1, Mat& mask2, Mat& intersection)
 	Mat border1 = border(mask1);
 	Mat border2 = border(mask2);
 	intersection = ~(border1 | border2);
-	imwrite("test/inter.jpg", intersection);
-
 }
 
 int Blender::findIntersectionPts(Point2i& pt1, Point2i& pt2, Mat& intersection)
@@ -284,15 +282,12 @@ Mat Blender::verticalBlending(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mas
 	Mat xormask1 = mask1 ^ andMasks;
 	xormask1 = xormask1 > 0;
 	xormask2 = xormask2 > 0;
-	imwrite("test/xormaks1.jpg", xormask1);
-	imwrite("test/xormaks2.jpg", xormask2);
 	Mat errorMap(image1.size(), CV_64FC1);
 	Mat errorGraph(image1.size(), CV_8UC1);
 	// ------------------------------------------
 	double eTopLeft = 0, eTopRight = 0, eTop = 0, eLeft = 0, eRight = 0, eCurrent;
 
 	double maxError = 0;
-	imwrite("test/andmask.jpg", andMasks);
 	Mat intersection;
 	findIntersection(mask1, mask2, intersection);
 	Point2i pt1, pt2;
@@ -405,7 +400,7 @@ Mat Blender::verticalBlending(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mas
 
 		}
 	}
-	imwrite("test/errorMap.jpg", errorGraph);
+	
 
 	Mat errorSeam(image1.size(), CV_8UC3);
 	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
@@ -458,8 +453,8 @@ Mat Blender::verticalBlending(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mas
 		seamMap.at<unsigned char>(y, x) = 255;
 	}
 
-	imwrite("test/errorSeam.jpg", errorSeam);
-	imwrite("test/seamMap.jpg", seamMap);
+	
+
 
 	//blending
 	Mat blended(image1.size(), CV_8UC3, cv::Scalar(0, 0, 0));
@@ -501,15 +496,13 @@ Mat Blender::horizontalBlending(cv::Mat image1, cv::Mat image2, Mat mask1, Mat m
 	Mat xormask1 = mask1 ^ andMasks;
 	xormask1 = xormask1 > 0;
 	xormask2 = xormask2 > 0;
-	imwrite("test/xormaks1.jpg", xormask1);
-	imwrite("test/xormaks2.jpg", xormask2);
 	Mat &errorMap = Mat(image1.size(), CV_64FC1);
 	Mat errorGraph(image1.size(), CV_8UC1);
 	// ------------------------------------------
 	double eTopLeft = 0, eBottomLeft = 0, eTop = 0, eLeft = 0, eBottom = 0, eCurrent;
 
 	double maxError = 0;
-	imwrite("test/andmask.jpg", andMasks);
+	
 	Mat intersection;
 	findIntersection(mask1, mask2, intersection);
 	Point2i pt1, pt2;
@@ -612,7 +605,7 @@ Mat Blender::horizontalBlending(cv::Mat image1, cv::Mat image2, Mat mask1, Mat m
 
 		}
 	}
-	imwrite("test/errorMap.jpg", errorGraph);
+	
 
 	Mat errorSeam(image1.size(), CV_8UC3);
 	Mat seamMap(image1.size(), CV_8UC1, Scalar(0));
@@ -665,8 +658,6 @@ Mat Blender::horizontalBlending(cv::Mat image1, cv::Mat image2, Mat mask1, Mat m
 		seamMap.at<unsigned char>(y, x) = 255;
 	}
 
-	imwrite("test/errorSeam.jpg", errorSeam);
-	imwrite("test/seamMap.jpg", seamMap);
 
 
 	//blending

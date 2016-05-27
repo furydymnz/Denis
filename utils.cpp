@@ -376,7 +376,7 @@ void ComputeError(int i, int j, Mat &image1, Mat &image2, direction **dirMap, Ma
 					getDPError(i-1, j+1, errorMap, dirMap),
 					getDPError(i, j-1, errorMap, dirMap),
 					getDPError(i, j+1, errorMap, dirMap),};
-	double minError = 110000;
+	double minError = DBL_MAX;
 	int minDir = -1;
 	for(int i=0 ; i<5 ; i++)
 	{
@@ -571,7 +571,7 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 
 		hd_andMask = mask1 & mask2;
 	}
-	imwrite("YO//textMask.jpg", textMask);
+	//imwrite("YO//textMask.jpg", textMask);
 	errorMap = Mat(image1.size(), CV_64FC1);
 
 	errorBundle.setErrorMap(errorMap);
@@ -769,7 +769,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 
 		hd_andMask = mask1 & mask2;
 	}
-	imwrite("YO//textMask.jpg", textMask);
+	//imwrite("YO//textMask.jpg", textMask);
 	errorMap = Mat(image1.size(), CV_64FC1);
 
 	errorBundle.setErrorMap(errorMap);
@@ -1033,11 +1033,12 @@ void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& m
 	{
 		seamMap.at<unsigned char>(seam[i]) = 255;
 	}
+	/*
 	char a[100];
 	static int c = 0;
 	sprintf(a, "YO/seam%d.jpg", c++);
 	imwrite(a, seamMap);
-
+	*/
 	bool passedSeam;
 	bool image1Left;
 	
@@ -1128,12 +1129,12 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 	{
 		seamMap.at<unsigned char>(seam[i]) = 255;
 	}
-
+	/*
 	char a[100];
 	static int c = 0;
 	sprintf(a, "YO/seam%d.jpg", c++);
 	imwrite(a, seamMap);
-
+	*/
 	bool image1Above;
 	bool isSet = false;
 	for (int i = 0; i < blended.rows; i++)
