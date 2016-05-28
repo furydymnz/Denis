@@ -57,5 +57,6 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask2, Mat textMask1, Mat textMask2, double scale);
 void fixSeam(vector<Point2i> &seam, Point pt1, Point pt2, double scale, Mat andMask);
 void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& mask2, vector<Point2i>& seam);
+float getGradient(int fromRow, int fromCol, int toRow, int toCol, Mat &image1, Mat &image2, direction **dirMap);
 void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& mask2, vector<Point2i>& seam);
 #endif

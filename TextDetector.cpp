@@ -13,6 +13,7 @@ TextDetector::~TextDetector()
 Mat TextDetector::detect(Mat img)
 {
 	Mat textMask = Mat::zeros(img.size(), CV_8UC1);
+	return textMask;
 	Mat small;
 	const int HEIGHT_BOUND = img.size().height / 300;
 	const int WIDTH_BOUND = img.size().width / 300;

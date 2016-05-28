@@ -4,7 +4,7 @@
 #include <opencv2/opencv.hpp>
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
-//#define DEBUG
+#define DEBUG
 
 MatchTracker::MatchTracker(int size, double scale)
 {
@@ -260,7 +260,6 @@ void MatchTracker::calculateErrorPair()
 			if (abs(pt1.x - pt2.x) > abs(pt1.y - pt2.y))
 			{
 				printf("Horizontal\n");
-				
 				errorBundle = horizontalErrorMap(image1, image2, mask1, mask2,
 					textMask1, textMask2, scale);
 			}

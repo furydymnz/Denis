@@ -19,6 +19,7 @@
 #include <vector>
 #include <limits>
 #include "opencv2/imgproc/imgproc.hpp"
+#define DEBUG
 
 using namespace std;
 using namespace cv;
@@ -208,14 +209,14 @@ cv::Mat border(cv::Mat mask)
 
 	return border <100;
 }
-double ComputeError(const cv::Mat& image1, const cv::Mat& image2, int i, int c)
+float ComputeError(const cv::Mat& image1, const cv::Mat& image2, int i, int c)
 {
 	cv::Vec3b c1 = image1.at<Vec3b>(i, c);
 	cv::Vec3b c2 = image2.at<Vec3b>(i, c);
-	double b = (c1[0] - c2[0])*(c1[0] - c2[0]);
-	double g = (c1[1] - c2[1])*(c1[1] - c2[1]);
-	double r = (c1[2] - c2[2])*(c1[2] - c2[2]);
-	return sqrt(b + g + r);
+
+	float b1 = (0.299*c1[2] + 0.587*c1[1] + 0.114*c1[0]);
+	float b2 = (0.299*c2[2] + 0.587*c2[1] + 0.114*c2[0]);
+	return fabs(b2 - b1);
 }
 
 
@@ -348,16 +349,16 @@ void findIntersection(Mat& mask1, Mat& mask2, Mat& intersection)
 	intersection = ~( border(mask1) | border(mask2) );
 
 }
-double getDPError(int i, int j, Mat &errorMap, direction **dirMap)
+float getDPError(int i, int j, Mat &errorMap, direction **dirMap)
 {
 	if (i < 0 || j < 0 || j >= errorMap.cols || i >= errorMap.rows || dirMap[i][j] == YO)
 		return -1;
-	return errorMap.at<double>(i, j);
+	return errorMap.at<float>(i, j);
 }
 
 void ComputeError(int i, int j, Mat &image1, Mat &image2, direction **dirMap, Mat &errorMap, Mat &textMask)
 {
-	double eCurrent;
+	float eCurrent;
 	if (textMask.at<unsigned char>(i, j) == 255)
 	{
 		eCurrent = 999;
@@ -367,27 +368,38 @@ void ComputeError(int i, int j, Mat &image1, Mat &image2, direction **dirMap, Ma
 		eCurrent = ComputeError(image1, image2, i, j);
 	}
 	//TL T TR L R
-	double errors[5] = {getDPError(i-1, j-1, errorMap, dirMap),
+	float errors[5] = {getDPError(i-1, j-1, errorMap, dirMap),
 					getDPError(i-1, j, errorMap, dirMap),
 					getDPError(i-1, j+1, errorMap, dirMap),
 					getDPError(i, j-1, errorMap, dirMap),
-					getDPError(i, j+1, errorMap, dirMap),};
-	double minError = DBL_MAX;
+					getDPError(i, j+1, errorMap, dirMap)};
+	float gradient[5] = {
+		getGradient(i, j, i - 1, j - 1, image1, image2, dirMap),
+		getGradient(i, j, i - 1, j, image1, image2, dirMap),
+		getGradient(i, j, i - 1, j + 1, image1, image2, dirMap),
+		getGradient(i, j, i, j - 1, image1, image2, dirMap),
+		getGradient(i, j, i, j + 1, image1, image2, dirMap)
+	};
+	float minError = FLT_MAX, error;
+	const float ERROR_WEIGHT = 1;
+	const float GRADIENT_WEIGHT = 3;
 	int minDir = -1;
 	for(int i=0 ; i<5 ; i++)
 	{
 		if(errors[i]==-1)
 			continue;
-		if(errors[i]<minError)
+		error = ERROR_WEIGHT * errors[i] + GRADIENT_WEIGHT * gradient[i];
+
+		if(error<minError)
 		{
-			minError = errors[i];
+			minError = error;
 			minDir = i;
 		}
 	}
 	if(minDir==-1)
 	{
 		dirMap[i][j] = CURRENT;
-		errorMap.at<double>(i, j) = eCurrent;
+		errorMap.at<float>(i, j) = eCurrent;
 	}
 	else
 	{
@@ -411,15 +423,35 @@ void ComputeError(int i, int j, Mat &image1, Mat &image2, direction **dirMap, Ma
 		default:
 			dirMap[i][j]=CURRENT;
 		}
-		errorMap.at<double>(i, j) = eCurrent + minError;
+		//errorMap.at<float>(i, j) = eCurrent + errors[minDir];
+		errorMap.at<float>(i, j) = eCurrent + minError;
+		
+
 	}
 
+}
+float getGradient(int fromRow, int fromCol, int toRow, int toCol, Mat &image1, Mat &image2, direction **dirMap)
+{
+	if (toRow < 0 || toCol < 0 || toCol >= image1.cols || toRow >= image1.rows || dirMap[toRow][toCol] == YO)
+		return -1;
+	cv::Vec3b cFrom1 = image1.at<Vec3b>(fromRow, fromCol);
+	cv::Vec3b cFrom2 = image2.at<Vec3b>(fromRow, fromCol);
+	cv::Vec3b cTo1 = image1.at<Vec3b>(toRow, toCol);
+	cv::Vec3b cTo2 = image2.at<Vec3b>(toRow, toCol);
+
+	// Luminance (perceived)
+	int bFrom1 = (0.299*cFrom1[2] + 0.587*cFrom1[1] + 0.114*cFrom1[0]);	
+	int bFrom2 = (0.299*cFrom2[2] + 0.587*cFrom2[1] + 0.114*cFrom2[0]);
+	int bTo1 = (0.299*cTo1[2] + 0.587*cTo1[1] + 0.114*cTo1[0]);
+	int bTo2 = (0.299*cTo2[2] + 0.587*cTo2[1] + 0.114*cTo2[0]);
+	
+	return (fabs(bTo1 - bFrom1) / 2 + fabs(bTo2 - bFrom2) / 2);
 }
 
 
 void ComputeHorizontalError(int i, int j, Mat &image1, Mat &image2, direction **dirMap, Mat &errorMap, Mat &textMask)
 {
-	double eCurrent;
+	float eCurrent;
 	if (textMask.at<unsigned char>(i, j) == 255)
 	{
 		eCurrent = 999;
@@ -429,27 +461,39 @@ void ComputeHorizontalError(int i, int j, Mat &image1, Mat &image2, direction **
 		eCurrent = ComputeError(image1, image2, i, j);
 	}
 	//TL T L BL B
-	double errors[5] = {getDPError(i-1, j-1, errorMap, dirMap),
+	float errors[5] = {
+		getDPError(i-1, j-1, errorMap, dirMap),
 		getDPError(i-1, j, errorMap, dirMap),
 		getDPError(i, j-1, errorMap, dirMap),
 		getDPError(i+1, j-1, errorMap, dirMap),
-		getDPError(i+1, j, errorMap, dirMap),};
-	double minError = DBL_MAX;
+		getDPError(i+1, j, errorMap, dirMap)};
+	float gradient[5] = {
+		getGradient(i, j, i - 1, j - 1, image1, image2, dirMap),
+		getGradient(i, j, i - 1, j, image1, image2, dirMap),
+		getGradient(i, j, i, j - 1, image1, image2, dirMap),
+		getGradient(i, j, i + 1, j - 1, image1, image2, dirMap),
+		getGradient(i, j, i + 1, j, image1, image2, dirMap)
+	};
+	float minError = FLT_MAX, error;
 	int minDir = -1;
+	const float ERROR_WEIGHT = 1;
+	const float GRADIENT_WEIGHT = 3;
 	for(int i=0 ; i<5 ; i++)
 	{
 		if(errors[i]==-1)
 			continue;
-		if(errors[i] < minError)
+		error = ERROR_WEIGHT * errors[i] + GRADIENT_WEIGHT * gradient[i];
+		
+		if(error< minError)
 		{
-			minError = errors[i];
+			minError = error;
 			minDir = i;
 		}
 	}
 	if(minDir==-1)
 	{
 		dirMap[i][j] = CURRENT;
-		errorMap.at<double>(i, j) = eCurrent;
+		errorMap.at<float>(i, j) = eCurrent;
 	}
 	else
 	{
@@ -473,10 +517,12 @@ void ComputeHorizontalError(int i, int j, Mat &image1, Mat &image2, direction **
 		default:
 			dirMap[i][j]=CURRENT;
 		}
-		if(eCurrent <= DBL_MAX)
-			errorMap.at<double>(i, j) = eCurrent + minError;
+		if(eCurrent <= FLT_MAX)
+			//errorMap.at<float>(i, j) = eCurrent + errors[minDir];
+			errorMap.at<float>(i, j) = eCurrent + minError;
 		else
-			errorMap.at<double>(i, j) = DBL_MAX;
+			errorMap.at<float>(i, j) = FLT_MAX;
+		
 	}
 
 }
@@ -530,9 +576,9 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 	Mat errorMap;
 	Mat textMask = textMask1 | textMask2;
 	// ------------------------------------------
-	double eTopLeft = 0, eBottomLeft = 0, eTop = 0, eLeft = 0, eBottom = 0, eCurrent;
+	float eTopLeft = 0, eBottomLeft = 0, eTop = 0, eLeft = 0, eBottom = 0, eCurrent;
 
-	double maxError = 0;
+	float maxError = 0;
 
 	Mat intersection;
 	findIntersection(mask1, mask2, intersection);
@@ -568,7 +614,7 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 		hd_andMask = mask1 & mask2;
 	}
 	//imwrite("YO//textMask.jpg", textMask);
-	errorMap = Mat(image1.size(), CV_64FC1);
+	errorMap = Mat(image1.size(), CV_32F);
 
 	errorBundle.setErrorMap(errorMap);
 	
@@ -610,7 +656,7 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 					continue;
 				if (i == pt1.y)
 				{
-					errorMap.at<double>(i, j) = ComputeError(image1, image2, i, j);
+					errorMap.at<float>(i, j) = ComputeError(image1, image2, i, j);
 					dirMap[i][j] = CURRENT;
 				}
 				else
@@ -622,7 +668,7 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 					continue;
 				if (i == pt1.y)
 				{
-					errorMap.at<double>(i, j) = ComputeError(image1, image2, i, j);
+					errorMap.at<float>(i, j) = ComputeError(image1, image2, i, j);
 					dirMap[i][j] = CURRENT;
 				}
 				else
@@ -642,10 +688,24 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 				if (andMasks.at<unsigned char>(i, j) == 0)
 					continue;
 				ComputeHorizontalError(i, j, image1, image2, dirMap, errorMap, textMask);
+				
 			}
 		}
-
 	}
+#ifdef DEBUG
+	float max = 0;
+	for (int j = pt1.x; j <= pt2.x; j++)
+	{
+		for (int i = 0; i < errorMap.rows; i++)
+		{
+			if (max < errorMap.at<float>(i, j))
+				max = errorMap.at<float>(i, j);
+		}
+	}
+	Mat B;
+	errorMap.convertTo(B, CV_8U, 255.0 / max);
+	imwrite("YO/horizontalErrorMap.jpg", B);
+#endif // DEBUG
 	for (int j = pt1.x; j <= pt2.x; j++)
 	{
 		for (int i = 0; i < errorMap.rows; i++)
@@ -653,12 +713,11 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 				&& dirMap[i - 1][j] == BOTTOM && dirMap[i][j] == TOP)
 			{
 				//may have some error
-				dirMap[i - 1][j] = TOP;
+				//dirMap[i - 1][j] = TOP;
 				dirMap[i][j] = BOTTOM;
 			}
 	}
-	
-	double minError = errorMap.at<double>(pt2.y, pt2.x);
+	float minError = errorMap.at<float>(pt2.y, pt2.x);
 	Point2i startpt = pt2;
 	vector<Point2i> &seam = errorBundle.getpath();
 	errorBundle.setPathError(minError);
@@ -706,6 +765,8 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 		image2 = tempImage2.clone();
 	}
 
+	
+
 	hd_andMask.release();
 	tempImage1.release();
 	tempImage2.release();
@@ -731,9 +792,9 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 	Mat errorGraph(image1.size(), CV_8UC1);
 	Mat textMask = textMask1 | textMask2;
 	// ------------------------------------------
-	double eTopLeft = 0, eTopRight = 0, eTop = 0, eLeft = 0, eRight = 0, eCurrent;
+	float eTopLeft = 0, eTopRight = 0, eTop = 0, eLeft = 0, eRight = 0, eCurrent;
 
-	double maxError = 0;
+	float maxError = 0;
 	Mat intersection;
 	findIntersection(mask1, mask2, intersection);
 	Point2i pt1, pt2;
@@ -768,7 +829,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 		hd_andMask = mask1 & mask2;
 	}
 	//imwrite("YO//textMask.jpg", textMask);
-	errorMap = Mat(image1.size(), CV_64FC1);
+	errorMap = Mat(image1.size(), CV_32FC1);
 
 	errorBundle.setErrorMap(errorMap);
 
@@ -806,7 +867,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 					continue;
 				if (j == pt1.x)
 				{
-					errorMap.at<double>(i, j) = ComputeError(image1, image2, i, j);
+					errorMap.at<float>(i, j) = ComputeError(image1, image2, i, j);
 					dirMap[i][j] = CURRENT;
 				}
 				else
@@ -818,7 +879,7 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 					continue;
 				if (j == pt1.x)
 				{
-					errorMap.at<double>(i, j) = ComputeError(image1, image2, i, j);
+					errorMap.at<float>(i, j) = ComputeError(image1, image2, i, j);
 					dirMap[i][j] = CURRENT;
 				}
 				else
@@ -847,12 +908,25 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 			if (j + 1<errorMap.cols && j>0
 				&& dirMap[i][j - 1] == RIGHT && dirMap[i][j] == LEFT)
 			{
-				dirMap[i][j - 1] = LEFT;
+				//dirMap[i][j - 1] = LEFT;
 				dirMap[i][j] = RIGHT;
 			}
 	}
-	
-	double minError = errorMap.at<double>(pt2.y, pt2.x);
+#ifdef DEBUG
+	float max = 0;
+	for (int i = pt1.y; i <= pt2.y; i++)
+	{
+		for (int j = 0; j < errorMap.cols; j++)
+		{
+			if (max < errorMap.at<float>(i, j))
+				max = errorMap.at<float>(i, j);
+		}
+	}
+	Mat B;
+	errorMap.convertTo(B, CV_8U, 255.0 / max);
+	imwrite("YO/VerticalErrorMap.jpg", B);
+#endif // DEBUG
+	float minError = errorMap.at<float>(pt2.y, pt2.x);
 	Point2i startpt = pt2;
 	vector<Point2i> &seam = errorBundle.getpath();
 	errorBundle.setPathError(minError);
