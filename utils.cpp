@@ -19,6 +19,10 @@
 #include <vector>
 #include <limits>
 #include "opencv2/imgproc/imgproc.hpp"
+
+#define GLOBAL_ERROR_WEIGHT 1
+#define GLOBAL_GRADIENT_WEIGHT 3
+
 #define DEBUG
 
 using namespace std;
@@ -214,8 +218,9 @@ float ComputeError(const cv::Mat& image1, const cv::Mat& image2, int i, int c)
 	cv::Vec3b c1 = image1.at<Vec3b>(i, c);
 	cv::Vec3b c2 = image2.at<Vec3b>(i, c);
 
-	float b1 = (0.299*c1[2] + 0.587*c1[1] + 0.114*c1[0]);
-	float b2 = (0.299*c2[2] + 0.587*c2[1] + 0.114*c2[0]);
+	float b1 = (0.299*c1[2] + 0.587*c1[1] + 0.114*c1[0])/255.0;
+	float b2 = (0.299*c2[2] + 0.587*c2[1] + 0.114*c2[0])/255.0;
+	//printf("%f, %f %f\n", b1, b2, fabs(b2 - b1));
 	return fabs(b2 - b1);
 }
 
@@ -356,12 +361,14 @@ float getDPError(int i, int j, Mat &errorMap, direction **dirMap)
 	return errorMap.at<float>(i, j);
 }
 
+
+
 void ComputeError(int i, int j, Mat &image1, Mat &image2, direction **dirMap, Mat &errorMap, Mat &textMask)
 {
 	float eCurrent;
 	if (textMask.at<unsigned char>(i, j) == 255)
 	{
-		eCurrent = 999;
+		eCurrent = 1;
 	}
 	else
 	{
@@ -381,8 +388,8 @@ void ComputeError(int i, int j, Mat &image1, Mat &image2, direction **dirMap, Ma
 		getGradient(i, j, i, j + 1, image1, image2, dirMap)
 	};
 	float minError = FLT_MAX, error;
-	const float ERROR_WEIGHT = 1;
-	const float GRADIENT_WEIGHT = 3;
+	const float ERROR_WEIGHT = GLOBAL_ERROR_WEIGHT;
+	const float GRADIENT_WEIGHT = GLOBAL_GRADIENT_WEIGHT;
 	int minDir = -1;
 	for(int i=0 ; i<5 ; i++)
 	{
@@ -425,8 +432,6 @@ void ComputeError(int i, int j, Mat &image1, Mat &image2, direction **dirMap, Ma
 		}
 		//errorMap.at<float>(i, j) = eCurrent + errors[minDir];
 		errorMap.at<float>(i, j) = eCurrent + minError;
-		
-
 	}
 
 }
@@ -440,12 +445,13 @@ float getGradient(int fromRow, int fromCol, int toRow, int toCol, Mat &image1, M
 	cv::Vec3b cTo2 = image2.at<Vec3b>(toRow, toCol);
 
 	// Luminance (perceived)
-	int bFrom1 = (0.299*cFrom1[2] + 0.587*cFrom1[1] + 0.114*cFrom1[0]);	
+	int bFrom1 = (0.299*cFrom1[2] + 0.587*cFrom1[1] + 0.114*cFrom1[0]);
 	int bFrom2 = (0.299*cFrom2[2] + 0.587*cFrom2[1] + 0.114*cFrom2[0]);
 	int bTo1 = (0.299*cTo1[2] + 0.587*cTo1[1] + 0.114*cTo1[0]);
 	int bTo2 = (0.299*cTo2[2] + 0.587*cTo2[1] + 0.114*cTo2[0]);
 	
-	return (fabs(bTo1 - bFrom1) / 2 + fabs(bTo2 - bFrom2) / 2);
+	//printf("%f\n", (fabs(bTo1 - bFrom1) + fabs(bTo2 - bFrom2)) / 2.0/255.0);
+	return (fabs(bTo1 - bFrom1) + fabs(bTo2 - bFrom2))/2.0/255.0;
 }
 
 
@@ -454,7 +460,7 @@ void ComputeHorizontalError(int i, int j, Mat &image1, Mat &image2, direction **
 	float eCurrent;
 	if (textMask.at<unsigned char>(i, j) == 255)
 	{
-		eCurrent = 999;
+		eCurrent = 1;
 	}
 	else
 	{
@@ -476,8 +482,8 @@ void ComputeHorizontalError(int i, int j, Mat &image1, Mat &image2, direction **
 	};
 	float minError = FLT_MAX, error;
 	int minDir = -1;
-	const float ERROR_WEIGHT = 1;
-	const float GRADIENT_WEIGHT = 3;
+	const float ERROR_WEIGHT = GLOBAL_ERROR_WEIGHT;
+	const float GRADIENT_WEIGHT = GLOBAL_GRADIENT_WEIGHT;
 	for(int i=0 ; i<5 ; i++)
 	{
 		if(errors[i]==-1)
@@ -522,7 +528,7 @@ void ComputeHorizontalError(int i, int j, Mat &image1, Mat &image2, direction **
 			errorMap.at<float>(i, j) = eCurrent + minError;
 		else
 			errorMap.at<float>(i, j) = FLT_MAX;
-		
+
 	}
 
 }
@@ -691,6 +697,8 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 				
 			}
 		}
+
+
 	}
 #ifdef DEBUG
 	float max = 0;
@@ -704,6 +712,7 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 	}
 	Mat B;
 	errorMap.convertTo(B, CV_8U, 255.0 / max);
+	printf("max: %f\n", max);
 	imwrite("YO/horizontalErrorMap.jpg", B);
 #endif // DEBUG
 	for (int j = pt1.x; j <= pt2.x; j++)
@@ -923,8 +932,10 @@ ErrorBundle verticalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat mask
 		}
 	}
 	Mat B;
+	printf("max: %f\n", max);
 	errorMap.convertTo(B, CV_8U, 255.0 / max);
 	imwrite("YO/VerticalErrorMap.jpg", B);
+
 #endif // DEBUG
 	float minError = errorMap.at<float>(pt2.y, pt2.x);
 	Point2i startpt = pt2;
