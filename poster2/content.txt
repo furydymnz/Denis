@@ -1,4 +1,23 @@
 1. Java test
 2. Shrink Seam Finding
 3. Faster Blending 
-4. OCR Seam Finding
+4. OCR (not OCR) Seam Finding
+5. Gradient Seam Finding
+6. Text alignment feature detecting
+
+
+good - fully match
+ok - < one character
+bad - > one character
+
+Without align:
+good:1 
+ok:4
+bad:5
+
+with align:
+good:7
+ok:2
+bad:1
+
+2111121113
