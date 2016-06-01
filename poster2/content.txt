@@ -1,0 +1,4 @@
+1. Java test
+2. Shrink Seam Finding
+3. Faster Blending 
+4. OCR Seam Finding
