@@ -23,6 +23,7 @@ using namespace std;
 using namespace cv;
 
 #define PROCEDURE 8
+#define MODE 1 //0 for sceneryMoe; 1 for TextMode
 
 //-------------------------------------------------------
 
