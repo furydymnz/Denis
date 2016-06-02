@@ -1166,6 +1166,8 @@ void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& m
 						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
 					else
 						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+					if (seamMap.at<unsigned char>(i, j) == 255)
+						blended.at<Vec3b>(i, j) = Vec3b(0, 0, 255);
 				}
 			}
 		}
@@ -1184,6 +1186,8 @@ void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& m
 						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
 					else
 						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
+					if (seamMap.at<unsigned char>(i, j) == 255)
+						blended.at<Vec3b>(i, j) = Vec3b(0, 0, 255);
 				}
 			}
 
@@ -1261,6 +1265,8 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 					else
 						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
 						//blended.at<Vec3b>(i, j) = temp.at<Vec3b>(0, 0);
+					if (seamMap.at<unsigned char>(i, j) == 255)
+						blended.at<Vec3b>(i, j) = Vec3b(0, 0, 255);
 				}
 			}
 		}
@@ -1281,6 +1287,8 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 					else
 						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
 						//blended.at<Vec3b>(i, j) = temp.at<Vec3b>(0, 0);
+					if (seamMap.at<unsigned char>(i, j) == 255)
+						blended.at<Vec3b>(i, j) = Vec3b(0, 0, 255);
 				}
 
 			}

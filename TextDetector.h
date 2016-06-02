@@ -12,7 +12,7 @@ class TextDetector
 public:
 	TextDetector();
 	~TextDetector();
-	Mat detect(Mat img);
+	void detect(Mat img);
 	void setTextMode(bool mode);
 };
 

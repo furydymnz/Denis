@@ -35,6 +35,8 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	const int maxBorder = 1000;
 	const double minScale = 0.3;
 
+	TextDetector textDetector;
+
 	clock_t start, stop;
 	clock_t tstart, tstop;
 
@@ -77,6 +79,22 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	if (imageCount <= 1) return -1;
 	stop = clock();
 	printf("Time of LoadImages is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
+
+#if MODE
+	printf("===========detectText==============\n");
+	start = clock();
+	char a[100];
+	for (int i = 0; i < imageCount; i++) {
+		textDetector.detect(vImage[i]);
+		sprintf(a, "test%d.jpg", i);
+		imwrite(a, vImage[i]);
+	}
+	stop = clock();
+	printf("Time of TextDetect is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
+
+#endif // MODE
+
+	
 	start = clock();
 
 	//Find surf descriptions
@@ -189,11 +207,14 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	stop = clock();
 	printf("Time of generateMask is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
 	
-	printf("===========detectText==============\n");
-	start = clock();
+	
+	//printf("===========detectText==============\n");
+	//start = clock();
+	//Assign Zero Mask
 	matchTracker.detectText();
-	stop = clock();
-	printf("Time of detectText is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
+	//stop = clock();
+	//printf("Time of detectText is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
+	
 
 	printf("===========pixelPadding============\n");
 	start = clock();

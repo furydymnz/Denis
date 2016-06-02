@@ -198,7 +198,8 @@ void MatchTracker::detectText()
 	for (int i = 0; i < size; i++) {
 		if (images[i]->isEmpty()) 
 			continue;
-		images[i]->assignTextMask(textDetector.detect(images[i]->getImage()));
+		//images[i]->assignTextMask(textDetector.detect(images[i]->getImage()));
+		images[i]->assignTextMask(Mat::zeros(images[i]->getImage().size(), CV_8UC1));
 	}
 }
 
