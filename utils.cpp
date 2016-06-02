@@ -19,6 +19,7 @@
 #include <vector>
 #include <limits>
 #include "opencv2/imgproc/imgproc.hpp"
+#include "ipoint.h"
 
 #define GLOBAL_ERROR_WEIGHT 1
 #define GLOBAL_GRADIENT_WEIGHT 3
@@ -451,7 +452,7 @@ float getGradient(int fromRow, int fromCol, int toRow, int toCol, Mat &image1, M
 	int bTo2 = (0.299*cTo2[2] + 0.587*cTo2[1] + 0.114*cTo2[0]);
 	
 	//printf("%f\n", (fabs(bTo1 - bFrom1) + fabs(bTo2 - bFrom2)) / 2.0/255.0);
-	return (fabs(bTo1 - bFrom1) + fabs(bTo2 - bFrom2))/2.0/255.0;
+	return (abs(bTo1 - bFrom1) + abs(bTo2 - bFrom2))/2.0/255.0;
 }
 
 
