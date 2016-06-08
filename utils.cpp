@@ -22,10 +22,10 @@
 #include "ipoint.h"
 
 #define GLOBAL_ERROR_WEIGHT 1
-#define GLOBAL_GRADIENT_WEIGHT 3
+#define GLOBAL_GRADIENT_WEIGHT 0
 
 #define DEBUG
-//#define DRAWSEAM
+#define DRAWSEAM
 
 using namespace std;
 using namespace cv;
