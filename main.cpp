@@ -24,6 +24,8 @@ using namespace cv;
 
 #define PROCEDURE 8
 #define MODE 1 //0 for sceneryMoe; 1 for TextMode
+#define DRAWFEATURES
+#define DRAWMATCHEDFEATURES
 
 //-------------------------------------------------------
 
@@ -33,7 +35,7 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	Mat tempImage;
 
 	double scale = 1.0;
-	const int maxBorder = 10000;
+	const int maxBorder = 100;
 	const double minScale = 0.3;
 
 	TextDetector textDetector;
@@ -116,6 +118,12 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 		for (int j = 0; j < keypoints.size(); j++) {
 			temp.push_back(keypoints[j].pt);
 		}
+#ifdef DRAWFEATURES
+		char a[100];
+		drawPoints(vImage[i], temp);
+		sprintf(a, "features%d.jpg", i);
+		imwrite(a, vImage[i]);
+#endif
 		arraysOfKeyPoints.push_back(temp);
 	}
 
@@ -128,9 +136,14 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	for (int i = 0; i < vImage.size(); i++)
 	{
 		matchTracker.pushImage(new BaseImage(vString[i]));
+#ifndef DRAWMATCHEDFEATURES
 		vImage[i].release();
+#endif
 	}
+
+#ifndef DRAWMATCHEDFEATURES
 	vImage.clear();
+#endif // !1
 	vString.clear();
 
 	FlannBasedMatcher matcher;
@@ -150,12 +163,26 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 					Point2f pt2 = keyPoint2[dmatch[0].trainIdx];
 					tempMatch.push_back(make_pair(Ipoint((pt1.x/scale), pt1.y / scale), Ipoint(pt2.x / scale, pt2.y / scale)));
 					fpNum++;
+#ifdef DRAWMATCHEDFEATURES
+					circle(vImage[i], pt1, 3, Scalar(255, 0, 0));
+					circle(vImage[j], pt2, 3, Scalar(255, 0, 0));
+#endif // DRAWMATCHEDFEATURES
 				}
 			}
 			matchTracker.assignFPNum(i, j, fpNum);
 			matchTracker.assignFPPair(i, j, tempMatch);
+#ifdef DRAWMATCHEDFEATURES
+			char a[100];
+			sprintf(a, "Mfeaturesj%d.jpg", j);
+			imwrite(a, vImage[j]);
 			printf("getMatches %d %d %d\n", i, j, fpNum);
+#endif
 		}
+#ifdef DRAWMATCHEDFEATURES
+		char a[100];
+		sprintf(a, "Mfeaturesi%d.jpg", i);
+		imwrite(a, vImage[i]);
+#endif
 	}
 	
 	
