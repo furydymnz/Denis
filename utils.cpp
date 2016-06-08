@@ -25,6 +25,7 @@
 #define GLOBAL_GRADIENT_WEIGHT 3
 
 #define DEBUG
+//#define DRAWSEAM
 
 using namespace std;
 using namespace cv;
@@ -1167,8 +1168,11 @@ void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& m
 						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
 					else
 						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
+#ifdef DRAWSEAM
 					if (seamMap.at<unsigned char>(i, j) == 255)
 						blended.at<Vec3b>(i, j) = Vec3b(0, 0, 255);
+#endif // DRAWSEAM
+
 				}
 			}
 		}
@@ -1187,8 +1191,11 @@ void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& m
 						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
 					else
 						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
+#ifdef DRAWSEAM
 					if (seamMap.at<unsigned char>(i, j) == 255)
 						blended.at<Vec3b>(i, j) = Vec3b(0, 0, 255);
+#endif // DRAWSEAM
+					
 				}
 			}
 
@@ -1266,8 +1273,10 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 					else
 						blended.at<Vec3b>(i, j) = image2.at<Vec3b>(i, j);
 						//blended.at<Vec3b>(i, j) = temp.at<Vec3b>(0, 0);
+#ifdef DRAWSEAM
 					if (seamMap.at<unsigned char>(i, j) == 255)
 						blended.at<Vec3b>(i, j) = Vec3b(0, 0, 255);
+#endif // DRAWSEAM
 				}
 			}
 		}
@@ -1288,8 +1297,11 @@ void horizontalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat&
 					else
 						blended.at<Vec3b>(i, j) = image1.at<Vec3b>(i, j);
 						//blended.at<Vec3b>(i, j) = temp.at<Vec3b>(0, 0);
+#ifdef DRAWSEAM
 					if (seamMap.at<unsigned char>(i, j) == 255)
 						blended.at<Vec3b>(i, j) = Vec3b(0, 0, 255);
+#endif // DRAWSEAM
+					
 				}
 
 			}
