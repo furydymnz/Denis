@@ -21,11 +21,11 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "ipoint.h"
 
-#define GLOBAL_ERROR_WEIGHT 1
-#define GLOBAL_GRADIENT_WEIGHT 3
+#define GLOBAL_ERROR_WEIGHT 0
+#define GLOBAL_GRADIENT_WEIGHT 1
 
 #define DEBUG
-//#define DRAWSEAM
+#define DRAWSEAM
 
 using namespace std;
 using namespace cv;
@@ -717,6 +717,8 @@ ErrorBundle horizontalErrorMap(cv::Mat image1, cv::Mat image2, Mat mask1, Mat ma
 	printf("max: %f\n", max);
 	imwrite("YO/horizontalErrorMap.jpg", B);
 #endif // DEBUG
+
+
 	for (int j = pt1.x; j <= pt2.x; j++)
 	{
 		for (int i = 0; i < errorMap.rows; i++)
@@ -1198,7 +1200,7 @@ void verticalBlending(Mat& blended, Mat& image1, Mat& image2, Mat& mask1, Mat& m
 					
 				}
 			}
-
+			
 		}
 	}
 	andMasks.release();
