@@ -1,11 +1,25 @@
+Feature:
+including a big stitched result in the head
+
 1. Java test
+included in future and feature
+future: More efficient memory usage
+feature: Java version via JNI
+
 2. Shrink Seam Finding
+benchmark of various level of shrinkage
+
 3. Faster Blending 
-4. OCR (not OCR) Seam Finding
+included in time result compare
+//////4. OCR (not OCR) Seam Finding
+
 5. Gradient Seam Finding
+Compare the difference of seam between horizontal seam with and without gradient data
+
 6. Text alignment feature detecting
+Most significant when the overlapped part is in the middle of a sentence
 
-
+Result of text alignment:
 good - fully match
 ok - < one character
 bad - > one character
@@ -20,4 +34,11 @@ good:7
 ok:2
 bad:1
 
-2111121113
+Future:
+1. Robustness
+2. Memory management
+3. Mobile platform
+4. Stitching for difference size of picture
+	a. Interest area: All of the pictures will take the picture with the biggest interest area as pivot
+
+
