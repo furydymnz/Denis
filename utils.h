@@ -32,6 +32,7 @@ void drawPoint(IplImage *img, Ipoint &ipt);
 //! Draw a Point at all features
 void drawPoints(IplImage *img, std::vector<Ipoint> &ipts);
 void drawPoints(Mat &image, vector<Ipoint> &ipts);
+void drawPoints(Mat &image, vector<Point2f> &ipts);
 
 //! Round float to nearest integer
 inline int fRound(float flt)

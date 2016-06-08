@@ -152,6 +152,15 @@ void drawPoints(Mat &image, vector<Ipoint> &ipts)
 	}
 }
 
+void drawPoints(Mat &image, vector<Point2f> &ipts)
+{
+
+	for (unsigned int i = 0; i < ipts.size(); i++)
+	{
+		circle(image, ipts[i], 1, Scalar(0, 0, 255), 1);
+	}
+}
+
 //-------------------------------------------------------
 
 
@@ -332,7 +341,11 @@ Mat findhomography(IpPairVec& matches, int reverse = 0)
 		delete []value;
 	}
 
-	//cout << "number of inliers:" << maxInlier << endl;
+#ifdef DEBUG
+	cout << "number of inliers:" << maxInlier << endl;
+	cout << "number of matched Points" << matches.size() << endl;
+	printf("Ratio of inliers to matched points : %lf\n", (double)maxInlier / matches.size());
+#endif // DEBUG
 	/*
 	for(int i = 0;i < pointAmount;i++){
 		//cout << "x1: " <<  matches[i].first.x << " y2: " << matches[i].first.y << endl;
