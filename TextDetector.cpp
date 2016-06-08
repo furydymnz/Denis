@@ -46,7 +46,7 @@ void TextDetector::detect(Mat img)
 		// ratio of non-zero pixels in the filled region
 		double r = (double)countNonZero(maskROI) / (rect.width*rect.height);
 
-		if (r > 0.4 /* assume at least 45% of the area is filled if it contains text */
+		if (r > .25 /* assume at least 45% of the area is filled if it contains text */
 			&&
 			(rect.height > HEIGHT_BOUND && rect.width > WIDTH_BOUND) /* constraints on region size */
 												/* these two conditions alone are not very robust. better to use something
