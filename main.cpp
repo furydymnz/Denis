@@ -270,7 +270,8 @@ int mainStaticStitching(int imageCount, char *imageStr[]){
 	start = clock();
 	Mat blended = matchTracker.blending();
 
-	imwrite("YO/blended.jpg", blended);
+	//imwrite("YO/blended.jpg", blended);
+	imwrite("blended.jpg", blended);
 	printf("done\n");
 	stop = clock();
 	printf("Time of blending is: %lf seconds\n", double(stop - start) / CLOCKS_PER_SEC);
